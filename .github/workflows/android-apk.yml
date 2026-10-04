@@ -1,0 +1,34 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      # Le SDK Android est déjà installé sur les runners ubuntu-latest (ANDROID_HOME).
+      - run: npm ci
+      # Génère le projet natif android/ à partir de app.json (non versionné).
+      - run: npx expo prebuild --platform android --no-install
+      # APK de release signé avec la clé de debug : installable directement sur un téléphone.
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyGarden-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
