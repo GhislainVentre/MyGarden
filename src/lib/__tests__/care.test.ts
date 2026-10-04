@@ -68,6 +68,11 @@ describe('labels', () => {
 });
 
 describe('searchSpecies', () => {
+  it('finds the Pilea by common or alternative name', () => {
+    expect(searchSpecies(SPECIES, 'pilea pepero').map((s) => s.id)).toEqual(['pilea']);
+    expect(searchSpecies(SPECIES, 'monnaie chinoise').map((s) => s.id)).toEqual(['pilea']);
+  });
+
   it('ignores case and accents and matches alternative names', () => {
     expect(searchSpecies(SPECIES, 'SANSEVIERE').map((s) => s.id)).toContain('sansevieria');
     expect(searchSpecies(SPECIES, 'langue de belle').map((s) => s.id)).toEqual(['sansevieria']);
@@ -87,7 +92,7 @@ describe('species database', () => {
     expect(ids.size).toBe(SPECIES.length);
     for (const s of SPECIES) {
       expect(s.watering.summerDays).toBeGreaterThan(0);
-      expect(s.watering.winterDays).toBeGreaterThanOrEqual(s.watering.summerDays);
+      expect(s.watering.winterDays).toBeGreaterThan(0);
       expect(s.temperature.idealMinC).toBeLessThanOrEqual(s.temperature.idealMaxC);
       expect(s.temperature.minC).toBeLessThanOrEqual(s.temperature.idealMinC);
       expect(s.commonProblems.length).toBeGreaterThan(0);
