@@ -34,3 +34,9 @@ npm test
 - `src/lib/care.ts` : calcul des arrosages et recherche
 - `src/lib/photos.ts` : prise et stockage des photos
 - `src/context/GardenContext.tsx` et `src/storage/` : état et persistance des plantes
+
+## Installer l’APK Android
+
+Chaque push sur `main` (et chaque PR) lance le workflow **Android APK**, qui compile l’application et publie l’APK comme artefact `MyGarden-apk` dans l’onglet *Actions* de GitHub. Téléchargez-le, décompressez le zip et ouvrez le fichier `.apk` sur le téléphone (autoriser l’installation d’applications de sources inconnues).
+
+L’APK est signé avec une clé de debug : il convient pour tester, pas pour une publication sur le Play Store.
