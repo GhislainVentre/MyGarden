@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "MyGarden",
+    "slug": "mygarden",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ghislainventre.mygarden"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E8F5E9",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ghislainventre.mygarden"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "mygarden",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MyGarden a besoin d’accéder à vos photos pour illustrer vos plantes.",
+          "cameraPermission": "MyGarden a besoin de l’appareil photo pour photographier vos plantes.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}
