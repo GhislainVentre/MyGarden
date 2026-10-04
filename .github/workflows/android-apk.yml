@@ -19,7 +19,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      # Le SDK Android est déjà installé sur les runners ubuntu-latest (ANDROID_HOME).
       - run: npm ci
       # Génère le projet natif android/ à partir de app.json (non versionné).
       - run: npx expo prebuild --platform android --no-install
