@@ -75,7 +75,7 @@ describe('searchSpecies', () => {
 
   it('ignores case and accents and matches alternative names', () => {
     expect(searchSpecies(SPECIES, 'SANSEVIERE').map((s) => s.id)).toContain('sansevieria');
-    expect(searchSpecies(SPECIES, 'langue de belle').map((s) => s.id)).toEqual(['sansevieria']);
+    expect(searchSpecies(SPECIES, 'langue de belle').map((s) => s.id)).toContain('sansevieria');
     expect(searchSpecies(SPECIES, 'ocimum').map((s) => s.id)).toEqual(['basilic']);
   });
 
