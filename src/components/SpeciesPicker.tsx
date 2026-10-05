@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,7 +18,7 @@ interface Props {
 
 export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
   const [query, setQuery] = useState('');
-  const results = searchSpecies(SPECIES, query);
+  const results = useMemo(() => searchSpecies(SPECIES, query), [query]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>

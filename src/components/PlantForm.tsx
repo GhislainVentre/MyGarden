@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getSpecies } from '../data/species';
 import { formatEvery, wateringIntervalDays } from '../lib/care';
-import { pickPhoto, type PhotoSource } from '../lib/photos';
+import { deletePhoto, pickPhoto, type PhotoSource } from '../lib/photos';
+import { notify } from '../lib/notify';
 import { CATEGORY_TONES, card, colors, fonts, radius, spacing, type } from '../theme';
 import type { NewPlant } from '../types';
 import { Button } from './Button';
@@ -66,20 +67,31 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const suggestedDays = wateringIntervalDays({ customWateringDays: null }, species);
   const speciesTone = species ? CATEGORY_TONES[species.category] : null;
 
+  /** Efface une photo copiée pendant la saisie mais finalement non retenue. */
+  function discardDraftPhoto(uri: string | null) {
+    if (uri && uri !== initial?.photoUri) deletePhoto(uri);
+  }
+
   async function choosePhoto(source: PhotoSource) {
     const result = await pickPhoto(source);
     if (!result) return;
     if ('error' in result) {
-      Alert.alert('Photo', result.error);
+      notify('Photo', result.error);
       return;
     }
+    discardDraftPhoto(photoUri);
     setPhotoUri(result.uri);
+  }
+
+  function removePhoto() {
+    discardDraftPhoto(photoUri);
+    setPhotoUri(null);
   }
 
   function submit() {
     const name = nickname.trim() || species?.commonName;
     if (!name) {
-      Alert.alert('Nom manquant', 'Donnez un nom à votre plante ou choisissez son espèce.');
+      notify('Nom manquant', 'Donnez un nom à votre plante ou choisissez son espèce.');
       return;
     }
     onSubmit({
@@ -113,7 +125,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
             {photoUri && (
               <Pressable
                 accessibilityLabel="Retirer la photo"
-                onPress={() => setPhotoUri(null)}
+                onPress={removePhoto}
                 hitSlop={8}
                 style={styles.removePhoto}
               >

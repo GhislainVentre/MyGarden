@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../components/Button';
@@ -9,7 +9,8 @@ import { PlantPhoto } from '../components/PlantPhoto';
 import { WateringBadge } from '../components/WateringBadge';
 import { useGarden } from '../context/GardenContext';
 import { getSpecies } from '../data/species';
-import { daysUntilWatering } from '../lib/care';
+import { compareUrgency, daysUntilWatering } from '../lib/care';
+import { useNow } from '../lib/useNow';
 import { card, colors, fonts, radius, spacing, type } from '../theme';
 import type { MyPlant, PlantSpecies } from '../types';
 
@@ -34,7 +35,10 @@ function capitalize(text: string): string {
 export default function MyPlantsScreen() {
   const { plants, loading } = useGarden();
   const insets = useSafeAreaInsets();
-  const now = new Date();
+  const { width } = useWindowDimensions();
+  const now = useNow();
+  // Deux colonnes de largeur fixe : une carte seule en fin de grille ne s'étire pas.
+  const cardWidth = Math.floor((width - spacing.lg * 2 - spacing.md) / 2);
 
   if (loading) {
     return (
@@ -50,7 +54,7 @@ export default function MyPlantsScreen() {
       return { plant, species, days: daysUntilWatering(plant, species, now) };
     })
     // Les plantes à arroser en premier, celles sans date à la fin.
-    .sort((a, b) => (a.days ?? Infinity) - (b.days ?? Infinity));
+    .sort((a, b) => compareUrgency(a.days, b.days));
   const toWater = rows.filter((r) => r.days !== null && r.days <= 0).length;
   const dateLabel = capitalize(now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
 
@@ -108,7 +112,7 @@ export default function MyPlantsScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push({ pathname: '/plant/[id]', params: { id: plant.id } })}
-            style={({ pressed }) => [styles.cardItem, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.cardItem, { width: cardWidth }, pressed && styles.pressed]}
           >
             <PlantPhoto uri={plant.photoUri} width={9999} height={150} rounded={0} style={styles.cardPhoto} />
             <View style={styles.cardBody}>
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
   summaryTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.onPrimary },
   summarySubtitle: { fontFamily: fonts.bodyMedium, fontSize: 13, color: 'rgba(255,255,255,0.85)' },
   sectionLabel: { marginBottom: -spacing.sm },
-  cardItem: { flex: 1, ...card, overflow: 'hidden', marginBottom: spacing.md },
+  cardItem: { ...card, overflow: 'hidden', marginBottom: spacing.md },
   pressed: { opacity: 0.9, transform: [{ scale: 0.985 }] },
   cardPhoto: { width: '100%' },
   cardBody: { padding: spacing.md, gap: 4 },

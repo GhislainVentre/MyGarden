@@ -2,14 +2,18 @@ import { Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraun
 import { Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect } from 'react';
 
 import { GardenProvider } from '../context/GardenContext';
 import { colors, fonts } from '../theme';
 
+// L'écran de démarrage natif reste affiché tant que les polices chargent.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Fraunces_600SemiBold,
     Fraunces_700Bold,
     Nunito_400Regular,
@@ -18,13 +22,14 @@ export default function RootLayout() {
     Nunito_800ExtraBold,
   });
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
+  // Si une police ne charge pas, on démarre quand même avec la police système.
+  const ready = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <GardenProvider>

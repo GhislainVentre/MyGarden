@@ -38,9 +38,18 @@ export function daysUntilWatering(
 ): number | null {
   if (!plant.lastWateredAt) return null;
   const last = new Date(plant.lastWateredAt);
+  if (Number.isNaN(last.getTime())) return null;
   const interval = wateringIntervalDays(plant, species, now);
   const elapsed = Math.round((startOfDay(now) - startOfDay(last)) / DAY_MS);
   return interval - elapsed;
+}
+
+/** Tri : les plantes en retard d'abord, puis par échéance, celles sans date à la fin. */
+export function compareUrgency(a: number | null, b: number | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a - b;
 }
 
 export function wateringLabel(days: number | null): string {

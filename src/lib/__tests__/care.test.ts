@@ -1,6 +1,7 @@
 import { SPECIES, getSpecies } from '../../data/species';
 import {
   DEFAULT_WATERING_DAYS,
+  compareUrgency,
   daysUntilWatering,
   formatEvery,
   isGrowingSeason,
@@ -97,5 +98,24 @@ describe('species database', () => {
       expect(s.temperature.minC).toBeLessThanOrEqual(s.temperature.idealMinC);
       expect(s.commonProblems.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('daysUntilWatering edge cases', () => {
+  it('returns null for an unparsable date', () => {
+    expect(daysUntilWatering({ customWateringDays: null, lastWateredAt: 'pas-une-date' }, monstera, JULY)).toBeNull();
+  });
+
+  it('counts calendar days, not elapsed hours', () => {
+    const lateEvening = new Date(2026, 6, 14, 23, 50).toISOString();
+    const earlyMorning = new Date(2026, 6, 15, 0, 10);
+    expect(daysUntilWatering({ customWateringDays: 1, lastWateredAt: lateEvening }, monstera, earlyMorning)).toBe(0);
+  });
+});
+
+describe('compareUrgency', () => {
+  it('sorts overdue first and unknown dates last', () => {
+    const days = [3, null, -2, 0, null, 10];
+    expect([...days].sort(compareUrgency)).toEqual([-2, 0, 3, 10, null, null]);
   });
 });

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,7 +28,10 @@ export default function EncyclopediaScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Category | 'all'>('all');
   const insets = useSafeAreaInsets();
-  const results = searchSpecies(SPECIES, query).filter((s) => category === 'all' || s.category === category);
+  const results = useMemo(
+    () => searchSpecies(SPECIES, query).filter((s) => category === 'all' || s.category === category),
+    [query, category],
+  );
 
   return (
     <FlatList

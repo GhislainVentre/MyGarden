@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { resolvePhotoUri } from '../lib/photos';
 import { colors, radius } from '../theme';
 
 interface Props {
@@ -16,10 +17,11 @@ interface Props {
 /** Photo d'une plante, ou un motif végétal doux quand il n'y en a pas. */
 export function PlantPhoto({ uri, size, width, height, rounded = radius.md, style }: Props) {
   const box = { width: width ?? size ?? 80, height: height ?? size ?? 80, borderRadius: rounded };
-  if (uri) {
+  const source = resolvePhotoUri(uri);
+  if (source) {
     return (
       <View style={[box, styles.frame, style]}>
-        <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+        <Image source={{ uri: source }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
       </View>
     );
   }
