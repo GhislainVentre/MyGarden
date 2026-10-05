@@ -7,7 +7,7 @@ Application mobile (iOS, Android et web) pour enregistrer ses plantes avec une p
 - **Mes plantes** : liste de vos plantes avec photo, emplacement et état de l’arrosage, triée pour afficher en premier celles qui ont soif.
 - **Ajout d’une plante** : photo prise avec l’appareil ou choisie dans la galerie, espèce choisie dans l’encyclopédie, nom, emplacement, date du dernier arrosage, fréquence personnalisée et notes.
 - **Fiche de la plante** : suivi de l’arrosage (bouton « J’ai arrosé aujourd’hui »), prochaine échéance calculée selon la saison, et fiche d’entretien complète.
-- **Encyclopédie** : 24 plantes courantes (intérieur, succulentes, aromatiques, extérieur, potager) avec arrosage été/hiver, lumière, température, humidité, terre, engrais, rempotage, taille, toxicité pour les animaux et problèmes fréquents.
+- **Encyclopédie** : 300 plantes courantes (intérieur, succulentes, aromatiques, extérieur, potager) avec arrosage été/hiver, lumière, température, humidité, terre, engrais, rempotage, taille, toxicité pour les animaux et problèmes fréquents.
 
 Les données restent sur le téléphone (AsyncStorage) et les photos sont copiées dans le dossier de l’application.
 

@@ -1,11 +1,18 @@
 import type { PlantSpecies } from '../types';
+import { FRUIT_TREE_SPECIES } from './species-fruit-trees';
+import { GARDEN_SPECIES } from './species-garden';
+import { INDOOR_SPECIES } from './species-indoor';
+import { INDOOR_SPECIES_2 } from './species-indoor-2';
+import { ORNAMENTAL_SPECIES } from './species-ornamental';
+import { SUCCULENT_SPECIES } from './species-succulents';
+import { VEGETABLE_SPECIES } from './species-vegetables';
 
 /**
  * Base d'entretien embarquée : plantes courantes d'intérieur, d'extérieur,
  * aromatiques et potagères. Les intervalles d'arrosage sont indicatifs et
  * doivent être ajustés selon le pot, la saison et l'exposition.
  */
-export const SPECIES: PlantSpecies[] = [
+const BASE_SPECIES: PlantSpecies[] = [
   {
     id: 'monstera',
     commonName: 'Monstera',
@@ -587,6 +594,17 @@ export const SPECIES: PlantSpecies[] = [
     toxicity: 'Non toxique.',
     commonProblems: ['Fruits pourris gris : botrytis, éviter d’arroser le feuillage.', 'Limaces.'],
   },
+];
+
+export const SPECIES: PlantSpecies[] = [
+  ...BASE_SPECIES,
+  ...INDOOR_SPECIES,
+  ...INDOOR_SPECIES_2,
+  ...SUCCULENT_SPECIES,
+  ...GARDEN_SPECIES,
+  ...ORNAMENTAL_SPECIES,
+  ...FRUIT_TREE_SPECIES,
+  ...VEGETABLE_SPECIES,
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
