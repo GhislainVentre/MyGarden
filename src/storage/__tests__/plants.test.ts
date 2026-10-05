@@ -4,6 +4,7 @@ import { loadPlants, savePlants } from '../plants';
 import type { MyPlant } from '../../types';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
@@ -39,6 +40,29 @@ describe('loadPlants', () => {
     const loaded = await loadPlants();
     expect(loaded).toHaveLength(1);
     expect(loaded[0]).toMatchObject({ id: 'b', nickname: 'Monstie', location: '', photoUri: null, customWateringDays: null });
+  });
+});
+
+describe('loadPlants migrations', () => {
+  it('rewrites old absolute photo paths to relative ones and drops duplicate ids', async () => {
+    await AsyncStorage.setItem(
+      'mygarden:plants:v1',
+      JSON.stringify([
+        { ...plant, photoUri: 'file:///data/user/0/com.app/files/photos/123.jpg' },
+        { ...plant, nickname: 'Doublon' },
+        { ...plant, id: 'web', photoUri: 'blob:http://localhost/abc' },
+      ]),
+    );
+    const loaded = await loadPlants();
+    expect(loaded.map((p) => p.id)).toEqual(['a', 'web']);
+    expect(loaded[0].photoUri).toBe('photos/123.jpg');
+    expect(loaded[1].photoUri).toBe('blob:http://localhost/abc');
+  });
+
+  it('backs up unreadable storage before starting empty', async () => {
+    await AsyncStorage.setItem('mygarden:plants:v1', '{not json');
+    await loadPlants();
+    expect(await AsyncStorage.getItem('mygarden:plants:corrupt')).toBe('{not json');
   });
 });
 

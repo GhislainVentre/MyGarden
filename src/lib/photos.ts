@@ -17,17 +17,12 @@ export type PhotoResult = { uri: string } | { error: string } | null;
 
 /** Ouvre l'appareil photo ou la galerie. Renvoie null si l'utilisateur annule. */
 export async function pickPhoto(source: PhotoSource): Promise<PhotoResult> {
-  const permission =
-    source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted && !permission.canAskAgain) {
-    return {
-      error:
-        source === 'camera'
-          ? "L'accès à l'appareil photo a été refusé. Autorisez-le dans les réglages du téléphone."
-          : "L'accès aux photos a été refusé. Autorisez-le dans les réglages du téléphone.",
-    };
+  // La galerie passe par le sélecteur du système et n'a pas besoin de permission.
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      return { error: "L'accès à l'appareil photo a été refusé. Autorisez-le dans les réglages du téléphone." };
+    }
   }
   let result: ImagePicker.ImagePickerResult;
   try {
@@ -39,7 +34,31 @@ export async function pickPhoto(source: PhotoSource): Promise<PhotoResult> {
     return { error: "Impossible d'ouvrir la photo. Réessayez." };
   }
   if (result.canceled || result.assets.length === 0) return null;
-  return { uri: persistPhoto(result.assets[0].uri) };
+  return persistPhoto(result.assets[0].uri);
+}
+
+/**
+ * Sur le web, le sélecteur renvoie une URL `blob:` qui meurt au rechargement :
+ * on réduit l'image et on la garde en data URI (quelques dizaines de Ko).
+ */
+async function persistWebPhoto(uri: string): Promise<PhotoResult> {
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('image'));
+      img.src = uri;
+    });
+    const MAX = 1024;
+    const scale = Math.min(1, MAX / Math.max(image.width, image.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return { uri: canvas.toDataURL('image/jpeg', 0.8) };
+  } catch {
+    return { error: "Impossible de lire cette image." };
+  }
 }
 
 function photosDirectory(): Directory {
@@ -53,40 +72,47 @@ function photosDirectory(): Directory {
  * sélecteur sont temporaires) et renvoie un chemin relatif `photos/<nom>` :
  * le dossier documents peut changer d'emplacement à la mise à jour de l'app.
  */
-function persistPhoto(uri: string): string {
-  if (Platform.OS === 'web') return uri;
+async function persistPhoto(uri: string): Promise<PhotoResult> {
+  if (Platform.OS === 'web') return persistWebPhoto(uri);
   try {
     const match = /\.(jpe?g|png|webp|heic|gif)$/i.exec(uri.split('?')[0]);
     const extension = match ? match[1].toLowerCase() : 'jpg';
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${extension}`;
     const target = new File(photosDirectory(), name);
     new File(uri).copySync(target);
-    return `${PHOTOS_DIR}/${name}`;
+    return { uri: `${PHOTOS_DIR}/${name}` };
   } catch {
-    return uri;
+    // Mieux vaut le dire que de garder un fichier temporaire que le système effacera.
+    return { error: "La photo n'a pas pu être enregistrée. Réessayez." };
   }
-}
-
-function isManaged(uri: string): boolean {
-  return uri.startsWith(`${PHOTOS_DIR}/`) || uri.includes(`/${PHOTOS_DIR}/`);
 }
 
 /** Transforme le chemin enregistré en URI affichable par <Image>. */
 export function resolvePhotoUri(uri: string | null): string | null {
   if (!uri) return null;
-  if (Platform.OS === 'web' || !uri.startsWith(`${PHOTOS_DIR}/`)) return uri;
+  if (Platform.OS === 'web') return uri;
+  const name = managedName(uri);
+  if (!name) return uri;
   try {
-    return new File(Paths.document, uri).uri;
+    return new File(Paths.document, PHOTOS_DIR, name).uri;
   } catch {
     return null;
   }
 }
 
+/** Nom du fichier si la photo est gérée par l'app (chemin relatif ou ancienne URI absolue). */
+function managedName(uri: string): string | null {
+  const match = /(?:^|\/)photos\/([^/?#]+)$/.exec(uri);
+  return match ? match[1] : null;
+}
+
 /** Supprime une photo copiée par l'application. */
 export function deletePhoto(uri: string | null): void {
-  if (!uri || Platform.OS === 'web' || !isManaged(uri)) return;
+  if (!uri || Platform.OS === 'web') return;
+  const name = managedName(uri);
+  if (!name) return;
   try {
-    const file = uri.startsWith(`${PHOTOS_DIR}/`) ? new File(Paths.document, uri) : new File(uri);
+    const file = new File(Paths.document, PHOTOS_DIR, name);
     if (file.exists) file.delete();
   } catch {
     // La photo a déjà disparu : rien à faire.

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,17 +22,21 @@ interface Props {
   onSubmit: (plant: NewPlant) => void;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** Même heure il y a `days` jours, en jours civils (robuste aux changements d'heure). */
+function daysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
 
 function wateredAt(choice: WateredChoice, previous: string | null): string | null {
-  const now = Date.now();
   switch (choice) {
     case 'today':
-      return new Date(now).toISOString();
+      return new Date().toISOString();
     case 'yesterday':
-      return new Date(now - DAY_MS).toISOString();
+      return daysAgo(1).toISOString();
     case 'week':
-      return new Date(now - 7 * DAY_MS).toISOString();
+      return daysAgo(7).toISOString();
     case 'unknown':
       return null;
     case 'keep':
@@ -60,6 +64,20 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const [customDays, setCustomDays] = useState(initial?.customWateringDays ? String(initial.customWateringDays) : '');
   const [watered, setWatered] = useState<WateredChoice>(initial ? 'keep' : 'today');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const draftPhoto = useRef<string | null>(photoUri);
+  const submitted = useRef(false);
+
+  useEffect(() => {
+    draftPhoto.current = photoUri;
+  }, [photoUri]);
+
+  // Photo copiée puis formulaire abandonné : on efface la copie.
+  useEffect(() => {
+    return () => {
+      if (!submitted.current && draftPhoto.current !== (initial?.photoUri ?? null)) deletePhoto(draftPhoto.current);
+    };
+  }, [initial?.photoUri]);
 
   const species = getSpecies(speciesId);
   const parsedDays = Number.parseInt(customDays, 10);
@@ -89,11 +107,14 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   }
 
   function submit() {
+    if (submitting) return;
     const name = nickname.trim() || species?.commonName;
     if (!name) {
       notify('Nom manquant', 'Donnez un nom à votre plante ou choisissez son espèce.');
       return;
     }
+    setSubmitting(true);
+    submitted.current = true;
     onSubmit({
       nickname: name,
       speciesId,
@@ -226,7 +247,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
           />
         </Field>
 
-        <Button label={submitLabel} icon="checkmark" size="lg" onPress={submit} style={styles.submit} />
+        <Button label={submitLabel} icon="checkmark" size="lg" onPress={submit} disabled={submitting} style={styles.submit} />
       </ScrollView>
 
       <SpeciesPicker

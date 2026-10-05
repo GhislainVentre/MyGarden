@@ -113,6 +113,18 @@ describe('daysUntilWatering edge cases', () => {
   });
 });
 
+describe('searchSpecies with apostrophes and ligatures', () => {
+  it("matches a keyboard apostrophe against a typographic one", () => {
+    expect(searchSpecies(SPECIES, "jasmin d'interieur").map((s) => s.id)).toEqual(
+      searchSpecies(SPECIES, 'jasmin d’intérieur').map((s) => s.id),
+    );
+  });
+
+  it('matches "coeur" against "cœur"', () => {
+    expect(searchSpecies(SPECIES, 'chaine des coeurs').length).toBeGreaterThan(0);
+  });
+});
+
 describe('compareUrgency', () => {
   it('sorts overdue first and unknown dates last', () => {
     const days = [3, null, -2, 0, null, 10];

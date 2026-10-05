@@ -20,15 +20,25 @@ export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
   const [query, setQuery] = useState('');
   const results = useMemo(() => searchSpecies(SPECIES, query), [query]);
 
+  function close() {
+    setQuery('');
+    onClose();
+  }
+
+  function select(species: PlantSpecies | null) {
+    setQuery('');
+    onSelect(species);
+  }
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={close}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <View>
             <Text style={type.title}>Quelle espèce ?</Text>
             <Text style={type.caption}>{SPECIES.length} plantes dans l’encyclopédie</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} hitSlop={12} style={styles.close}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={close} hitSlop={12} style={styles.close}>
             <Ionicons name="close" size={20} color={colors.text} />
           </Pressable>
         </View>
@@ -41,7 +51,7 @@ export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            <Pressable style={({ pressed }) => [styles.row, styles.unknownRow, pressed && styles.pressed]} onPress={() => onSelect(null)}>
+            <Pressable style={({ pressed }) => [styles.row, styles.unknownRow, pressed && styles.pressed]} onPress={() => select(null)}>
               <View style={[styles.rowIcon, { backgroundColor: colors.surfaceAlt }]}>
                 <Ionicons name="help" size={22} color={colors.primary} />
               </View>
@@ -60,7 +70,7 @@ export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
           renderItem={({ item }) => {
             const tone = CATEGORY_TONES[item.category];
             return (
-              <Pressable style={({ pressed }) => [styles.row, pressed && styles.pressed]} onPress={() => onSelect(item)}>
+              <Pressable style={({ pressed }) => [styles.row, pressed && styles.pressed]} onPress={() => select(item)}>
                 <View style={[styles.rowIcon, { backgroundColor: tone.bg }]}>
                   <Ionicons name="leaf" size={22} color={tone.fg} />
                 </View>

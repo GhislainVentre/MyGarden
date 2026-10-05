@@ -73,6 +73,9 @@ export function normalize(text: string): string {
   return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    .replace(/[’‘`´]/g, "'")
+    .replace(/œ/gi, 'oe')
+    .replace(/æ/gi, 'ae')
     .toLowerCase()
     .trim();
 }

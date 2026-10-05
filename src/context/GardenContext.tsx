@@ -19,20 +19,38 @@ export function GardenProvider({ children }: { children: ReactNode }) {
   const [plants, setPlants] = useState<MyPlant[]>([]);
   const [loading, setLoading] = useState(true);
   const plantsRef = useRef<MyPlant[]>([]);
+  const loadedRef = useRef(false);
+  // Modifications faites avant la fin du chargement (lien profond vers « Nouvelle plante »).
+  const earlyUpdates = useRef<((current: MyPlant[]) => MyPlant[])[]>([]);
 
   useEffect(() => {
+    let active = true;
     loadPlants()
+      .catch(() => [] as MyPlant[])
       .then((loaded) => {
-        plantsRef.current = loaded;
-        setPlants(loaded);
-      })
-      .finally(() => setLoading(false));
+        if (!active) return;
+        const merged = earlyUpdates.current.reduce((current, update) => update(current), loaded);
+        loadedRef.current = true;
+        plantsRef.current = merged;
+        setPlants(merged);
+        if (earlyUpdates.current.length > 0) savePlants(merged).catch(() => {});
+        earlyUpdates.current = [];
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const commit = useCallback((update: (current: MyPlant[]) => MyPlant[]) => {
     const next = update(plantsRef.current);
     plantsRef.current = next;
     setPlants(next);
+    if (!loadedRef.current) {
+      // On rejouera la modification sur les données chargées, sans écraser le stockage.
+      earlyUpdates.current.push(update);
+      return;
+    }
     savePlants(next).catch(() => {});
   }, []);
 

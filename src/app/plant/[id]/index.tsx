@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../../components/Button';
@@ -11,6 +12,8 @@ import { wateringTone } from '../../../components/WateringBadge';
 import { useGarden } from '../../../context/GardenContext';
 import { getSpecies } from '../../../data/species';
 import { daysUntilWatering, formatEvery, wateringIntervalDays, wateringLabel } from '../../../lib/care';
+import { goBack } from '../../../lib/navigation';
+import { useNow } from '../../../lib/useNow';
 import { card, colors, fonts, radius, spacing, type } from '../../../theme';
 
 function confirmDelete(name: string, onConfirm: () => void) {
@@ -27,10 +30,19 @@ function confirmDelete(name: string, onConfirm: () => void) {
 
 export default function PlantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { plants, markWatered, removePlant } = useGarden();
+  const { plants, loading, markWatered, removePlant } = useGarden();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const now = useNow();
   const plant = plants.find((p) => p.id === id);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   if (!plant) {
     return (
@@ -42,8 +54,8 @@ export default function PlantDetailScreen() {
   }
 
   const species = getSpecies(plant.speciesId);
-  const days = daysUntilWatering(plant, species);
-  const interval = wateringIntervalDays(plant, species);
+  const days = daysUntilWatering(plant, species, now);
+  const interval = wateringIntervalDays(plant, species, now);
   const tone = wateringTone(days);
   const lastWatered = plant.lastWateredAt
     ? new Date(plant.lastWateredAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -52,6 +64,7 @@ export default function PlantDetailScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + spacing.xxl }]} bounces={false}>
+      <StatusBar style="light" />
       <View style={[styles.hero, { height: heroHeight }]}>
         <PlantPhoto uri={plant.photoUri} width={9999} height={heroHeight} rounded={0} style={styles.heroPhoto} />
         <LinearGradient
@@ -62,7 +75,7 @@ export default function PlantDetailScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Retour"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          onPress={goBack}
           hitSlop={8}
           style={[styles.back, { top: insets.top + spacing.sm }]}
         >
@@ -139,7 +152,7 @@ export default function PlantDetailScreen() {
             onPress={() =>
               confirmDelete(plant.nickname, () => {
                 removePlant(plant.id);
-                router.back();
+                goBack();
               })
             }
           />
