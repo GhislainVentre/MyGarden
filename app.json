@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E8F5E9",
+        "backgroundColor": "#2B5A3C",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -33,6 +33,15 @@
           "photosPermission": "MyGarden a besoin d’accéder à vos photos pour illustrer vos plantes.",
           "cameraPermission": "MyGarden a besoin de l’appareil photo pour photographier vos plantes.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F1E8"
         }
       ]
     ]

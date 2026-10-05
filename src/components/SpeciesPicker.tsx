@@ -1,11 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SPECIES } from '../data/species';
 import { CATEGORY_LABELS, searchSpecies } from '../lib/care';
-import { colors, radius, spacing } from '../theme';
+import { CATEGORY_TONES, card, colors, fonts, radius, spacing, type } from '../theme';
 import type { PlantSpecies } from '../types';
+import { Tag } from './Chip';
+import { SearchField } from './SearchField';
 
 interface Props {
   visible: boolean;
@@ -21,40 +24,58 @@ export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Choisir l’espèce</Text>
-          <Pressable accessibilityRole="button" onPress={onClose} hitSlop={12}>
-            <Text style={styles.close}>Fermer</Text>
+          <View>
+            <Text style={type.title}>Quelle espèce ?</Text>
+            <Text style={type.caption}>{SPECIES.length} plantes dans l’encyclopédie</Text>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} hitSlop={12} style={styles.close}>
+            <Ionicons name="close" size={20} color={colors.text} />
           </Pressable>
         </View>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Rechercher (ex. monstera, basilic…)"
-          placeholderTextColor={colors.muted}
-          style={styles.search}
-          autoCorrect={false}
-          autoFocus
-        />
+        <View style={styles.search}>
+          <SearchField value={query} onChangeText={setQuery} placeholder="Monstera, basilic, pilea…" autoFocus />
+        </View>
         <FlatList
           data={results}
           keyExtractor={(s) => s.id}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            <Pressable style={styles.row} onPress={() => onSelect(null)}>
-              <Text style={styles.rowTitle}>Je ne connais pas l’espèce</Text>
-              <Text style={styles.rowSubtitle}>Vous pourrez la renseigner plus tard</Text>
+            <Pressable style={({ pressed }) => [styles.row, styles.unknownRow, pressed && styles.pressed]} onPress={() => onSelect(null)}>
+              <View style={[styles.rowIcon, { backgroundColor: colors.surfaceAlt }]}>
+                <Ionicons name="help" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.rowBody}>
+                <Text style={styles.rowTitle}>Je ne connais pas l’espèce</Text>
+                <Text style={type.caption}>Vous pourrez la renseigner plus tard</Text>
+              </View>
             </Pressable>
           }
-          ListEmptyComponent={<Text style={styles.empty}>Aucune plante trouvée pour « {query} ».</Text>}
-          renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => onSelect(item)}>
-              <Text style={styles.rowTitle}>{item.commonName}</Text>
-              <Text style={styles.rowSubtitle}>
-                {item.scientificName} · {CATEGORY_LABELS[item.category]}
-              </Text>
-            </Pressable>
-          )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="search-outline" size={36} color={colors.muted} />
+              <Text style={[type.body, styles.emptyText]}>Aucune plante trouvée pour « {query} ».</Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const tone = CATEGORY_TONES[item.category];
+            return (
+              <Pressable style={({ pressed }) => [styles.row, pressed && styles.pressed]} onPress={() => onSelect(item)}>
+                <View style={[styles.rowIcon, { backgroundColor: tone.bg }]}>
+                  <Ionicons name="leaf" size={22} color={tone.fg} />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {item.commonName}
+                  </Text>
+                  <Text style={styles.rowSubtitle} numberOfLines={1}>
+                    {item.scientificName}
+                  </Text>
+                </View>
+                <Tag label={CATEGORY_LABELS[item.category]} tone={tone} />
+              </Pressable>
+            );
+          }}
         />
       </SafeAreaView>
     </Modal>
@@ -67,30 +88,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
-  title: { fontSize: 20, fontWeight: '700', color: colors.text },
-  close: { fontSize: 16, color: colors.primary, fontWeight: '600' },
-  search: {
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.card,
+  close: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  search: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
   list: { padding: spacing.lg, gap: spacing.sm },
-  row: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
-  rowTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
-  rowSubtitle: { fontSize: 13, color: colors.muted, marginTop: 2 },
-  empty: { textAlign: 'center', color: colors.muted, marginTop: spacing.xl },
+  row: { ...card, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
+  unknownRow: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.primaryLight, marginBottom: spacing.xs },
+  pressed: { opacity: 0.9 },
+  rowIcon: { width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  rowBody: { flex: 1, gap: 2 },
+  rowTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.text },
+  rowSubtitle: { ...type.caption, fontStyle: 'italic' },
+  empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xxl, paddingHorizontal: spacing.xl },
+  emptyText: { color: colors.muted, textAlign: 'center' },
 });

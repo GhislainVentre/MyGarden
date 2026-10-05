@@ -11,6 +11,13 @@ Application mobile (iOS, Android et web) pour enregistrer ses plantes avec une p
 
 Les données restent sur le téléphone (AsyncStorage) et les photos sont copiées dans le dossier de l’application.
 
+## Design
+
+- Palette « jardin » : fond sable (`#F5F1E8`), vert forêt (`#2B5A3C`), touches d’eau, de soleil et de terre cuite pour les états d’arrosage.
+- Typographies : **Fraunces** pour les titres, **Nunito** pour le texte (chargées via `expo-font`).
+- Icônes Ionicons (`@expo/vector-icons`), dégradés `expo-linear-gradient`, icône et écran de démarrage dessinés dans `assets/`.
+- Les couleurs, espacements, rayons, ombres et styles de texte sont centralisés dans `src/theme.ts` ; les briques réutilisables (boutons, pastilles, champ de recherche, photo, badge d’arrosage) sont dans `src/components/`.
+
 ## Démarrer
 
 ```bash
