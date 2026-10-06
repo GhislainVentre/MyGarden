@@ -5,6 +5,7 @@ import {
   daysUntilWatering,
   formatEvery,
   isGrowingSeason,
+  normalize,
   searchSpecies,
   wateringIntervalDays,
   wateringLabel,
@@ -122,6 +123,29 @@ describe('searchSpecies with apostrophes and ligatures', () => {
 
   it('matches "coeur" against "cœur"', () => {
     expect(searchSpecies(SPECIES, 'chaine des coeurs').length).toBeGreaterThan(0);
+  });
+});
+
+describe('searchSpecies typo tolerance', () => {
+  it('finds a plant despite a typo when nothing matches exactly', () => {
+    const ids = (q: string) => searchSpecies(SPECIES, q).map((s) => s.id);
+    expect(ids('sedum robustm')[0]).toBe('sedum-robustum');
+    expect(ids('calatea white fusion')[0]).toBe('calathea-white-fusion');
+    expect(ids('banaier')).toEqual(expect.arrayContaining(['bananier-nain-cavendish']));
+    expect(ids('monsterra')).toContain('monstera');
+  });
+
+  it('keeps exact matches when they exist', () => {
+    expect(searchSpecies(SPECIES, 'basilic').every((s) => normalize(s.commonName + s.scientificName + (s.otherNames ?? []).join(' ')).includes('basilic'))).toBe(true);
+  });
+
+  it('returns nothing for gibberish', () => {
+    expect(searchSpecies(SPECIES, 'xqzwv')).toEqual([]);
+  });
+
+  it('finds the Sedum Robustum and the Ficus Robusta by their usual names', () => {
+    expect(searchSpecies(SPECIES, 'sérum robustum').map((s) => s.id)).toContain('sedum-robustum');
+    expect(searchSpecies(SPECIES, 'ficus robusta').map((s) => s.id)).toContain('ficus-elastica');
   });
 });
 

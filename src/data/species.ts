@@ -145,7 +145,7 @@ const BASE_SPECIES: PlantSpecies[] = [
     id: 'ficus-elastica',
     commonName: 'Caoutchouc',
     scientificName: 'Ficus elastica',
-    otherNames: ['Ficus elastica', 'Arbre à caoutchouc'],
+    otherNames: ['Ficus elastica', 'Arbre à caoutchouc', 'Ficus Robusta', 'Ficus elastica Robusta', 'Ficus elastica Decora'],
     family: 'Moraceae',
     category: 'interieur',
     description: 'Feuilles épaisses et brillantes, robuste et facile à vivre.',

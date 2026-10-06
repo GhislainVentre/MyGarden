@@ -80,14 +80,97 @@ export function normalize(text: string): string {
     .trim();
 }
 
-/** Recherche insensible à la casse et aux accents sur les noms courants, latins et alternatifs. */
+/** Distance d'édition (insertion, suppression, substitution) bornée à `max`. */
+function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
+      rowMin = Math.min(rowMin, current[j]);
+    }
+    if (rowMin > max) return max + 1;
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+function words(text: string): string[] {
+  return normalize(text)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+/**
+ * Fautes tolérées par mot : aucune jusqu'à 3 lettres, une jusqu'à 7, deux au-delà
+ * (« serum » trouve « sedum », « scalathea » trouve « calathea »).
+ */
+function typoBudget(word: string): number {
+  if (word.length <= 3) return 0;
+  return word.length <= 7 ? 1 : 2;
+}
+
+/** Mots normalisés de chaque espèce, calculés une seule fois. */
+const wordCache = new WeakMap<PlantSpecies, string[][]>();
+
+function speciesWords(species: PlantSpecies): string[][] {
+  let cached = wordCache.get(species);
+  if (!cached) {
+    cached = [species.commonName, species.scientificName, ...(species.otherNames ?? [])].map(words);
+    wordCache.set(species, cached);
+  }
+  return cached;
+}
+
+/** Score de ressemblance approximative (plus petit = meilleur), ou null si un mot ne trouve pas d'équivalent. */
+function fuzzyScore(queryWords: string[], nameWords: string[]): number | null {
+  let total = 0;
+  for (const q of queryWords) {
+    const budget = typoBudget(q);
+    let best = budget + 1;
+    for (const w of nameWords) {
+      // Le mot de la requête peut être le début d'un mot du nom (« banan » pour « bananier ») :
+      // on le compare aux débuts de mot de longueur voisine.
+      const from = Math.max(1, q.length - budget);
+      const to = Math.min(w.length, q.length + budget);
+      for (let length = from; length <= to && best > 0; length++) {
+        best = Math.min(best, editDistance(q, w.slice(0, length), budget));
+      }
+      if (best === 0) break;
+    }
+    if (best > budget) return null;
+    total += best;
+  }
+  return total;
+}
+
+/**
+ * Recherche insensible à la casse et aux accents sur les noms courants, latins et alternatifs.
+ * Sans résultat exact, on retombe sur une recherche tolérante aux fautes de frappe.
+ */
 export function searchSpecies(list: PlantSpecies[], query: string): PlantSpecies[] {
   const q = normalize(query);
   const sorted = [...list].sort((a, b) => a.commonName.localeCompare(b.commonName, 'fr'));
   if (!q) return sorted;
-  return sorted.filter((s) =>
-    [s.commonName, s.scientificName, ...(s.otherNames ?? [])].some((name) => normalize(name).includes(q)),
-  );
+  const names = (s: PlantSpecies) => [s.commonName, s.scientificName, ...(s.otherNames ?? [])];
+  const exact = sorted.filter((s) => names(s).some((name) => normalize(name).includes(q)));
+  if (exact.length > 0) return exact;
+
+  const queryWords = words(query);
+  if (queryWords.length === 0) return [];
+  return sorted
+    .map((species) => {
+      const scores = speciesWords(species)
+        .map((nameWords) => fuzzyScore(queryWords, nameWords))
+        .filter((score): score is number => score !== null);
+      return { species, score: scores.length ? Math.min(...scores) : null };
+    })
+    .filter((r): r is { species: PlantSpecies; score: number } => r.score !== null)
+    .sort((a, b) => a.score - b.score)
+    .map((r) => r.species);
 }
 
 export const CATEGORY_LABELS: Record<Category, string> = {
