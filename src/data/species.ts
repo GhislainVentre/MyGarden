@@ -1,5 +1,6 @@
 import type { PlantSpecies } from '../types';
 import { EDIBLE_SPECIES_2 } from './species-edible-2';
+import { EXOTIC_SPECIES } from './species-exotic';
 import { FRUIT_TREE_SPECIES } from './species-fruit-trees';
 import { GARDEN_SPECIES } from './species-garden';
 import { GARDEN_SPECIES_2 } from './species-garden-2';
@@ -611,6 +612,7 @@ export const SPECIES: PlantSpecies[] = [
   ...TROPICAL_SPECIES,
   ...GARDEN_SPECIES_2,
   ...EDIBLE_SPECIES_2,
+  ...EXOTIC_SPECIES,
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));

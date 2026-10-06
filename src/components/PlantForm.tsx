@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getSpecies } from '../data/species';
+import { SPECIES, getSpecies } from '../data/species';
 import { formatEvery, wateringIntervalDays } from '../lib/care';
 import { deletePhoto, pickPhoto, type PhotoSource } from '../lib/photos';
 import { notify } from '../lib/notify';
@@ -176,7 +176,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
                 {species ? species.commonName : 'Choisir dans l’encyclopédie'}
               </Text>
               <Text style={styles.speciesLatin} numberOfLines={1}>
-                {species ? species.scientificName : '300 plantes avec leurs conseils d’entretien'}
+                {species ? species.scientificName : `${SPECIES.length} plantes avec leurs conseils d’entretien`}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />
