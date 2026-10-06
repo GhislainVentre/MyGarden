@@ -147,6 +147,13 @@ describe('searchSpecies typo tolerance', () => {
     expect(searchSpecies(SPECIES, 'sérum robustum').map((s) => s.id)).toContain('sedum-robustum');
     expect(searchSpecies(SPECIES, 'ficus robusta').map((s) => s.id)).toContain('ficus-elastica');
   });
+
+  it('finds Crassula ovata cultivars by their full name', () => {
+    expect(searchSpecies(SPECIES, 'Crassula ovata undulata').map((s) => s.id)).toEqual(['crassula-ovata-undulata']);
+    expect(searchSpecies(SPECIES, 'arbre de jade').map((s) => s.id)).toEqual(
+      expect.arrayContaining(['crassula', 'crassula-ovata-undulata']),
+    );
+  });
 });
 
 describe('compareUrgency', () => {
