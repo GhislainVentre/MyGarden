@@ -1,4 +1,6 @@
 import type { PlantSpecies } from '../types';
+import { BAMBOO_SPECIES } from './species-bamboos';
+import { CACTUS_SPECIES } from './species-cacti';
 import { EDIBLE_SPECIES_2 } from './species-edible-2';
 import { EXOTIC_SPECIES } from './species-exotic';
 import { FRUIT_TREE_SPECIES } from './species-fruit-trees';
@@ -7,6 +9,7 @@ import { GARDEN_SPECIES_2 } from './species-garden-2';
 import { INDOOR_SPECIES } from './species-indoor';
 import { INDOOR_SPECIES_2 } from './species-indoor-2';
 import { ORNAMENTAL_SPECIES } from './species-ornamental';
+import { SEDUM_SPECIES } from './species-sedums';
 import { SUCCULENT_SPECIES } from './species-succulents';
 import { TROPICAL_SPECIES } from './species-tropical';
 import { VEGETABLE_SPECIES } from './species-vegetables';
@@ -613,6 +616,9 @@ export const SPECIES: PlantSpecies[] = [
   ...GARDEN_SPECIES_2,
   ...EDIBLE_SPECIES_2,
   ...EXOTIC_SPECIES,
+  ...BAMBOO_SPECIES,
+  ...SEDUM_SPECIES,
+  ...CACTUS_SPECIES,
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
