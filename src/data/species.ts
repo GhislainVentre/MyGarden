@@ -407,7 +407,7 @@ const BASE_SPECIES: PlantSpecies[] = [
     id: 'romarin',
     commonName: 'Romarin',
     scientificName: 'Salvia rosmarinus',
-    otherNames: ['Rosmarinus officinalis'],
+    otherNames: ['Rosmarinus officinalis', 'Romarin officinal', 'Romarin dressé'],
     family: 'Lamiaceae',
     category: 'aromatique',
     description: 'Arbuste méditerranéen persistant, parfumé et mellifère.',
