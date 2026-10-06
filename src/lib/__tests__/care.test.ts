@@ -77,7 +77,7 @@ describe('searchSpecies', () => {
   it('ignores case and accents and matches alternative names', () => {
     expect(searchSpecies(SPECIES, 'SANSEVIERE').map((s) => s.id)).toContain('sansevieria');
     expect(searchSpecies(SPECIES, 'langue de belle').map((s) => s.id)).toContain('sansevieria');
-    expect(searchSpecies(SPECIES, 'ocimum').map((s) => s.id)).toEqual(['basilic']);
+    expect(searchSpecies(SPECIES, 'ocimum').map((s) => s.id)).toEqual(expect.arrayContaining(['basilic', 'basilic-thai']));
   });
 
   it('returns every species sorted by name for an empty query', () => {
