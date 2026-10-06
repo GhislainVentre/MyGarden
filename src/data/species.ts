@@ -5,6 +5,7 @@ import { INDOOR_SPECIES } from './species-indoor';
 import { INDOOR_SPECIES_2 } from './species-indoor-2';
 import { ORNAMENTAL_SPECIES } from './species-ornamental';
 import { SUCCULENT_SPECIES } from './species-succulents';
+import { TROPICAL_SPECIES } from './species-tropical';
 import { VEGETABLE_SPECIES } from './species-vegetables';
 
 /**
@@ -605,6 +606,7 @@ export const SPECIES: PlantSpecies[] = [
   ...ORNAMENTAL_SPECIES,
   ...FRUIT_TREE_SPECIES,
   ...VEGETABLE_SPECIES,
+  ...TROPICAL_SPECIES,
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
