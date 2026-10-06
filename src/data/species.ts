@@ -11,6 +11,7 @@ import { INDOOR_SPECIES_2 } from './species-indoor-2';
 import { ORNAMENTAL_SPECIES } from './species-ornamental';
 import { SEDUM_SPECIES } from './species-sedums';
 import { SUCCULENT_SPECIES } from './species-succulents';
+import { SUCCULENT_SPECIES_2 } from './species-succulents-2';
 import { TROPICAL_SPECIES } from './species-tropical';
 import { VEGETABLE_SPECIES } from './species-vegetables';
 
@@ -619,6 +620,7 @@ export const SPECIES: PlantSpecies[] = [
   ...BAMBOO_SPECIES,
   ...SEDUM_SPECIES,
   ...CACTUS_SPECIES,
+  ...SUCCULENT_SPECIES_2,
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
