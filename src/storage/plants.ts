@@ -40,6 +40,7 @@ function sanitize(plant: MyPlant): MyPlant {
     lastWateredAt: typeof plant.lastWateredAt === 'string' ? plant.lastWateredAt : null,
     customWateringDays:
       typeof plant.customWateringDays === 'number' && plant.customWateringDays > 0 ? plant.customWateringDays : null,
+    potDiameterCm: typeof plant.potDiameterCm === 'number' && plant.potDiameterCm > 0 ? plant.potDiameterCm : null,
   };
 }
 

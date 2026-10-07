@@ -18,6 +18,7 @@ function plant(id: string, nickname: string, lastWateredDaysAgo: number | null, 
         ? null
         : new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() - lastWateredDaysAgo, 8).toISOString(),
     customWateringDays: every,
+    potDiameterCm: null,
   };
 }
 

@@ -18,6 +18,7 @@ const plant: MyPlant = {
   createdAt: '2026-10-05T10:00:00.000Z',
   lastWateredAt: null,
   customWateringDays: null,
+  potDiameterCm: null,
 };
 
 beforeEach(() => AsyncStorage.clear());
@@ -39,7 +40,14 @@ describe('loadPlants', () => {
     );
     const loaded = await loadPlants();
     expect(loaded).toHaveLength(1);
-    expect(loaded[0]).toMatchObject({ id: 'b', nickname: 'Monstie', location: '', photoUri: null, customWateringDays: null });
+    expect(loaded[0]).toMatchObject({
+      id: 'b',
+      nickname: 'Monstie',
+      location: '',
+      photoUri: null,
+      customWateringDays: null,
+      potDiameterCm: null,
+    });
   });
 });
 

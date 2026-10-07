@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { CATEGORY_LABELS, HUMIDITY_LABELS, LIGHT_LABELS, formatEvery, wateringIntervalDays } from '../lib/care';
 import { CATEGORY_TONES, DIFFICULTY_TONES, LIGHT_ICONS, card, colors, radius, spacing, type } from '../theme';
+import { getWateringGuide } from '../data/watering';
 import type { PlantSpecies } from '../types';
 import { Tag } from './Chip';
 
@@ -89,6 +90,7 @@ function Line({ label, value }: { label?: string; value: string }) {
 /** Fiche d'entretien complète d'une espèce. */
 export function CareSheet({ species, showStats = true }: { species: PlantSpecies; showStats?: boolean }) {
   const { watering, light, temperature } = species;
+  const guide = getWateringGuide(species);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -105,6 +107,8 @@ export function CareSheet({ species, showStats = true }: { species: PlantSpecies
       <Section icon="water" color={colors.water} title="Arrosage">
         <Line label="Printemps / été" value={formatEvery(watering.summerDays)} />
         <Line label="Automne / hiver" value={formatEvery(watering.winterDays)} />
+        <Line label="Comment" value={guide.method} />
+        <Line label="Quantité" value={guide.amount} />
         <Line value={watering.advice} />
       </Section>
 

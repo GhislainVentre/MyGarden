@@ -37,6 +37,16 @@ export interface PlantSpecies {
   commonProblems: string[];
 }
 
+/** Comment arroser une espèce et combien d'eau lui donner. */
+export interface WateringGuide {
+  /** Geste d'arrosage : où, comment, avec quelle eau. */
+  method: string;
+  /** Quantité d'eau par arrosage, en pot et en pleine terre si utile. */
+  amount: string;
+  /** Part du volume du pot à verser à chaque arrosage (0,2 = un cinquième), ou null si cela ne s'applique pas. */
+  potShare: number | null;
+}
+
 /** Plante enregistrée par l'utilisateur. */
 export interface MyPlant {
   id: string;
@@ -50,6 +60,8 @@ export interface MyPlant {
   lastWateredAt: string | null;
   /** Intervalle d'arrosage personnalisé en jours ; remplace la valeur de l'espèce. */
   customWateringDays: number | null;
+  /** Diamètre du pot en centimètres, pour calculer la quantité d'eau ; null en pleine terre ou si inconnu. */
+  potDiameterCm: number | null;
 }
 
 export type NewPlant = Omit<MyPlant, 'id' | 'createdAt'>;

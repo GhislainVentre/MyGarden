@@ -11,7 +11,9 @@ import { PlantPhoto } from '../../../components/PlantPhoto';
 import { wateringTone } from '../../../components/WateringBadge';
 import { useGarden } from '../../../context/GardenContext';
 import { getSpecies } from '../../../data/species';
+import { getWateringGuide } from '../../../data/watering';
 import { daysUntilWatering, formatEvery, wateringIntervalDays, wateringLabel } from '../../../lib/care';
+import { formatVolume, wateringAmountMl } from '../../../lib/watering';
 import { goBack } from '../../../lib/navigation';
 import { useNow } from '../../../lib/useNow';
 import { card, colors, fonts, radius, spacing, type } from '../../../theme';
@@ -57,6 +59,7 @@ export default function PlantDetailScreen() {
   const days = daysUntilWatering(plant, species, now);
   const interval = wateringIntervalDays(plant, species, now);
   const tone = wateringTone(days);
+  const amountMl = species ? wateringAmountMl(getWateringGuide(species), plant.potDiameterCm) : null;
   const lastWatered = plant.lastWateredAt
     ? new Date(plant.lastWateredAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
     : null;
@@ -103,6 +106,7 @@ export default function PlantDetailScreen() {
                 {'\n'}
                 {`Fréquence : ${formatEvery(interval)}`}
                 {plant.customWateringDays ? ' (personnalisée)' : species ? ' (selon la saison)' : ' (par défaut)'}
+                {amountMl !== null ? `\nQuantité : environ ${formatVolume(amountMl)} (pot de ${plant.potDiameterCm} cm)` : ''}
               </Text>
             </View>
           </View>

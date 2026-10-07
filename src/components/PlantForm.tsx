@@ -4,9 +4,11 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SPECIES, getSpecies } from '../data/species';
+import { getWateringGuide } from '../data/watering';
 import { formatEvery, wateringIntervalDays } from '../lib/care';
 import { deletePhoto, pickPhoto, type PhotoSource } from '../lib/photos';
 import { notify } from '../lib/notify';
+import { formatVolume, wateringAmountMl } from '../lib/watering';
 import { CATEGORY_TONES, card, colors, fonts, radius, spacing, type } from '../theme';
 import type { NewPlant } from '../types';
 import { Button } from './Button';
@@ -62,6 +64,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const [location, setLocation] = useState(initial?.location ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [customDays, setCustomDays] = useState(initial?.customWateringDays ? String(initial.customWateringDays) : '');
+  const [potDiameter, setPotDiameter] = useState(initial?.potDiameterCm ? String(initial.potDiameterCm) : '');
   const [watered, setWatered] = useState<WateredChoice>(initial ? 'keep' : 'today');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +86,10 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const parsedDays = Number.parseInt(customDays, 10);
   const validCustomDays = Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : null;
   const suggestedDays = wateringIntervalDays({ customWateringDays: null }, species);
+  const parsedDiameter = Number.parseInt(potDiameter, 10);
+  const validDiameter = Number.isFinite(parsedDiameter) && parsedDiameter >= 3 && parsedDiameter <= 200 ? parsedDiameter : null;
+  const guide = species ? getWateringGuide(species) : null;
+  const amountMl = guide ? wateringAmountMl(guide, validDiameter) : null;
   const speciesTone = species ? CATEGORY_TONES[species.category] : null;
 
   /** Efface une photo copiée pendant la saisie mais finalement non retenue. */
@@ -123,6 +130,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
       notes: notes.trim(),
       lastWateredAt: wateredAt(watered, initial?.lastWateredAt ?? null),
       customWateringDays: validCustomDays,
+      potDiameterCm: validDiameter,
     });
   }
 
@@ -233,6 +241,28 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
               style={styles.inputInner}
             />
             <Text style={styles.suffix}>jours</Text>
+          </View>
+        </Field>
+
+        <Field
+          label="Diamètre du pot"
+          hint={
+            amountMl !== null
+              ? `Environ ${formatVolume(amountMl)} d’eau à chaque arrosage.`
+              : 'Facultatif : pour savoir combien d’eau verser. Laissez vide en pleine terre.'
+          }
+        >
+          <View style={styles.inputRow}>
+            <Ionicons name="resize-outline" size={18} color={colors.water} />
+            <TextInput
+              value={potDiameter}
+              onChangeText={(text) => setPotDiameter(text.replace(/[^0-9]/g, '').slice(0, 3))}
+              keyboardType="number-pad"
+              placeholder="Ex. 14"
+              placeholderTextColor={colors.muted}
+              style={styles.inputInner}
+            />
+            <Text style={styles.suffix}>cm</Text>
           </View>
         </Field>
 
