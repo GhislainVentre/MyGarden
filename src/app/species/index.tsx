@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { memo, useDeferredValue, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ import { SearchField } from '../../components/SearchField';
 import { SPECIES } from '../../data/species';
 import { CATEGORY_LABELS, formatEvery, searchSpecies } from '../../lib/care';
 import { CATEGORY_TONES, DIFFICULTY_TONES, LIGHT_ICONS, card, colors, fonts, radius, spacing, type } from '../../theme';
-import type { Category } from '../../types';
+import type { Category, PlantSpecies } from '../../types';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -28,9 +28,11 @@ export default function EncyclopediaScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Category | 'all'>('all');
   const insets = useSafeAreaInsets();
+  // La saisie reste fluide : la liste se met à jour juste après la frappe.
+  const deferredQuery = useDeferredValue(query);
   const results = useMemo(
-    () => searchSpecies(SPECIES, query).filter((s) => category === 'all' || s.category === category),
-    [query, category],
+    () => searchSpecies(SPECIES, deferredQuery).filter((s) => category === 'all' || s.category === category),
+    [deferredQuery, category],
   );
 
   return (
@@ -63,40 +65,50 @@ export default function EncyclopediaScreen() {
           <Text style={[type.body, { color: colors.muted, textAlign: 'center' }]}>Aucune plante ne correspond à votre recherche.</Text>
         </View>
       }
-      renderItem={({ item }) => {
-        const tone = CATEGORY_TONES[item.category];
-        return (
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-            onPress={() => router.push({ pathname: '/species/[id]', params: { id: item.id } })}
-          >
-            <View style={[styles.rowIcon, { backgroundColor: tone.bg }]}>
-              <Ionicons name="leaf" size={22} color={tone.fg} />
-            </View>
-            <View style={styles.rowBody}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {item.commonName}
-              </Text>
-              <Text style={styles.rowSubtitle} numberOfLines={1}>
-                {item.scientificName}
-              </Text>
-              <View style={styles.rowMeta}>
-                <Tag label={CATEGORY_LABELS[item.category]} tone={tone} />
-                <Tag label={DIFFICULTY_LABELS[item.difficulty]} tone={DIFFICULTY_TONES[item.difficulty]} />
-              </View>
-              <View style={styles.rowHints}>
-                <Ionicons name="water-outline" size={13} color={colors.water} />
-                <Text style={styles.hint}>{formatEvery(item.watering.summerDays)} en été</Text>
-                <Ionicons name={LIGHT_ICONS[item.light.level]} size={13} color={colors.sun} style={styles.hintIcon} />
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.border} />
-          </Pressable>
-        );
-      }}
+      renderItem={renderRow}
+      initialNumToRender={10}
+      maxToRenderPerBatch={10}
+      windowSize={7}
+      removeClippedSubviews
     />
   );
+}
+
+const SpeciesRow = memo(function SpeciesRow({ item }: { item: PlantSpecies }) {
+  const tone = CATEGORY_TONES[item.category];
+  return (
+    <Pressable
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPress={() => router.push({ pathname: '/species/[id]', params: { id: item.id } })}
+    >
+      <View style={[styles.rowIcon, { backgroundColor: tone.bg }]}>
+        <Ionicons name="leaf" size={22} color={tone.fg} />
+      </View>
+      <View style={styles.rowBody}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {item.commonName}
+        </Text>
+        <Text style={styles.rowSubtitle} numberOfLines={1}>
+          {item.scientificName}
+        </Text>
+        <View style={styles.rowMeta}>
+          <Tag label={CATEGORY_LABELS[item.category]} tone={tone} />
+          <Tag label={DIFFICULTY_LABELS[item.difficulty]} tone={DIFFICULTY_TONES[item.difficulty]} />
+        </View>
+        <View style={styles.rowHints}>
+          <Ionicons name="water-outline" size={13} color={colors.water} />
+          <Text style={styles.hint}>{formatEvery(item.watering.summerDays)} en été</Text>
+          <Ionicons name={LIGHT_ICONS[item.light.level]} size={13} color={colors.sun} style={styles.hintIcon} />
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.border} />
+    </Pressable>
+  );
+});
+
+function renderRow({ item }: { item: PlantSpecies }) {
+  return <SpeciesRow item={item} />;
 }
 
 const styles = StyleSheet.create({

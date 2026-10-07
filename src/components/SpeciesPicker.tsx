@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,17 +18,26 @@ interface Props {
 
 export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
   const [query, setQuery] = useState('');
-  const results = useMemo(() => searchSpecies(SPECIES, query), [query]);
+  // La saisie reste fluide : la liste se met à jour juste après la frappe.
+  const deferredQuery = useDeferredValue(query);
+  const results = useMemo(() => searchSpecies(SPECIES, deferredQuery), [deferredQuery]);
 
   function close() {
     setQuery('');
     onClose();
   }
 
-  function select(species: PlantSpecies | null) {
-    setQuery('');
-    onSelect(species);
-  }
+  const select = useCallback(
+    (species: PlantSpecies | null) => {
+      setQuery('');
+      onSelect(species);
+    },
+    [onSelect],
+  );
+  const renderRow = useCallback(
+    ({ item }: { item: PlantSpecies }) => <PickerRow item={item} onSelect={select} />,
+    [select],
+  );
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={close}>
@@ -67,30 +76,42 @@ export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
               <Text style={[type.body, styles.emptyText]}>Aucune plante trouvée pour « {query} ».</Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const tone = CATEGORY_TONES[item.category];
-            return (
-              <Pressable style={({ pressed }) => [styles.row, pressed && styles.pressed]} onPress={() => select(item)}>
-                <View style={[styles.rowIcon, { backgroundColor: tone.bg }]}>
-                  <Ionicons name="leaf" size={22} color={tone.fg} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {item.commonName}
-                  </Text>
-                  <Text style={styles.rowSubtitle} numberOfLines={1}>
-                    {item.scientificName}
-                  </Text>
-                </View>
-                <Tag label={CATEGORY_LABELS[item.category]} tone={tone} />
-              </Pressable>
-            );
-          }}
+          renderItem={renderRow}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={7}
+          removeClippedSubviews
         />
       </SafeAreaView>
     </Modal>
   );
 }
+
+const PickerRow = memo(function PickerRow({
+  item,
+  onSelect,
+}: {
+  item: PlantSpecies;
+  onSelect: (species: PlantSpecies) => void;
+}) {
+  const tone = CATEGORY_TONES[item.category];
+  return (
+    <Pressable style={({ pressed }) => [styles.row, pressed && styles.pressed]} onPress={() => onSelect(item)}>
+      <View style={[styles.rowIcon, { backgroundColor: tone.bg }]}>
+        <Ionicons name="leaf" size={22} color={tone.fg} />
+      </View>
+      <View style={styles.rowBody}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {item.commonName}
+        </Text>
+        <Text style={styles.rowSubtitle} numberOfLines={1}>
+          {item.scientificName}
+        </Text>
+      </View>
+      <Tag label={CATEGORY_LABELS[item.category]} tone={tone} />
+    </Pressable>
+  );
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
