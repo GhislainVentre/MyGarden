@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { WateringReminders } from '../components/WateringReminders';
 import { GardenProvider } from '../context/GardenContext';
 import { colors, fonts } from '../theme';
 
@@ -33,6 +34,7 @@ export default function RootLayout() {
 
   return (
     <GardenProvider>
+      <WateringReminders />
       <StatusBar style="dark" />
       <Stack
         screenOptions={{

@@ -28,6 +28,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#2B5A3C"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "MyGarden a besoin d’accéder à vos photos pour illustrer vos plantes.",
