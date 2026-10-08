@@ -7,6 +7,7 @@ import { SPECIES } from '../data/species';
 import { CATEGORY_LABELS, searchSpecies } from '../lib/care';
 import { CATEGORY_TONES, card, colors, fonts, radius, spacing, type } from '../theme';
 import type { PlantSpecies } from '../types';
+import { BotanicalBackground } from './BotanicalBackground';
 import { Tag } from './Chip';
 import { SearchField } from './SearchField';
 
@@ -41,48 +42,50 @@ export function SpeciesPicker({ visible, onClose, onSelect }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={close}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Text style={type.title}>Quelle espèce ?</Text>
-            <Text style={type.caption}>{SPECIES.length} plantes dans l’encyclopédie</Text>
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={close} hitSlop={12} style={styles.close}>
-            <Ionicons name="close" size={20} color={colors.text} />
-          </Pressable>
-        </View>
-        <View style={styles.search}>
-          <SearchField value={query} onChangeText={setQuery} placeholder="Monstera, basilic, pilea…" autoFocus />
-        </View>
-        <FlatList
-          data={results}
-          keyExtractor={(s) => s.id}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            <Pressable style={({ pressed }) => [styles.row, styles.unknownRow, pressed && styles.pressed]} onPress={() => select(null)}>
-              <View style={[styles.rowIcon, { backgroundColor: colors.surfaceAlt }]}>
-                <Ionicons name="help" size={22} color={colors.primary} />
-              </View>
-              <View style={styles.rowBody}>
-                <Text style={styles.rowTitle}>Je ne connais pas l’espèce</Text>
-                <Text style={type.caption}>Vous pourrez la renseigner plus tard</Text>
-              </View>
-            </Pressable>
-          }
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="search-outline" size={36} color={colors.muted} />
-              <Text style={[type.body, styles.emptyText]}>Aucune plante trouvée pour « {query} ».</Text>
+      <BotanicalBackground>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <View>
+              <Text style={type.title}>Quelle espèce ?</Text>
+              <Text style={type.caption}>{SPECIES.length} plantes dans l’encyclopédie</Text>
             </View>
-          }
-          renderItem={renderRow}
-          initialNumToRender={12}
-          maxToRenderPerBatch={12}
-          windowSize={7}
-          removeClippedSubviews
-        />
-      </SafeAreaView>
+            <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={close} hitSlop={12} style={styles.close}>
+              <Ionicons name="close" size={20} color={colors.text} />
+            </Pressable>
+          </View>
+          <View style={styles.search}>
+            <SearchField value={query} onChangeText={setQuery} placeholder="Monstera, basilic, pilea…" autoFocus />
+          </View>
+          <FlatList
+            data={results}
+            keyExtractor={(s) => s.id}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.list}
+            ListHeaderComponent={
+              <Pressable style={({ pressed }) => [styles.row, styles.unknownRow, pressed && styles.pressed]} onPress={() => select(null)}>
+                <View style={[styles.rowIcon, { backgroundColor: colors.surfaceAlt }]}>
+                  <Ionicons name="help" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle}>Je ne connais pas l’espèce</Text>
+                  <Text style={type.caption}>Vous pourrez la renseigner plus tard</Text>
+                </View>
+              </Pressable>
+            }
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Ionicons name="search-outline" size={36} color={colors.muted} />
+                <Text style={[type.body, styles.emptyText]}>Aucune plante trouvée pour « {query} ».</Text>
+              </View>
+            }
+            renderItem={renderRow}
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            windowSize={7}
+            removeClippedSubviews
+          />
+        </SafeAreaView>
+      </BotanicalBackground>
     </Modal>
   );
 }
@@ -114,7 +117,7 @@ const PickerRow = memo(function PickerRow({
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

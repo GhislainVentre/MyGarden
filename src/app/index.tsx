@@ -138,8 +138,8 @@ export default function MyPlantsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: spacing.lg },
   column: { gap: spacing.md },
   header: { gap: spacing.lg, marginBottom: spacing.md },

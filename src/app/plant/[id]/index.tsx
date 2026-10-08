@@ -167,7 +167,7 @@ export default function PlantDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.background },
+  container: {},
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
   back: {
     position: 'absolute',
@@ -180,16 +180,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
   },
-  hero: { width: '100%', backgroundColor: colors.primaryLight },
+  hero: {
+    width: '100%',
+    backgroundColor: colors.primaryLight,
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+    overflow: 'hidden',
+  },
   heroPhoto: { width: '100%' },
-  heroText: { position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.xl + 8, gap: 2 },
+  heroText: { position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.lg, gap: 2 },
   heroName: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 36, color: colors.onPrimary },
   heroSubtitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: 'rgba(255,255,255,0.9)' },
   content: {
-    marginTop: -spacing.xl,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
     padding: spacing.lg,
     gap: spacing.lg,
   },

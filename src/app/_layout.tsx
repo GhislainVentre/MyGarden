@@ -6,9 +6,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { BotanicalBackground } from '../components/BotanicalBackground';
 import { WateringReminders } from '../components/WateringReminders';
 import { GardenProvider } from '../context/GardenContext';
 import { colors, fonts } from '../theme';
+
+// Écrans riches en texte : le fond y est voilé pour rester lisible.
+const READING_SCREENS = new Set(['species/[id]', 'plant/[id]/index', 'plant/new', 'plant/[id]/edit']);
 
 // L'écran de démarrage natif reste affiché tant que les polices chargent.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -37,6 +41,9 @@ export default function RootLayout() {
       <WateringReminders />
       <StatusBar style="dark" />
       <Stack
+        screenLayout={({ children, route }) => (
+          <BotanicalBackground veiled={READING_SCREENS.has(route.name)}>{children}</BotanicalBackground>
+        )}
         screenOptions={{
           headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
