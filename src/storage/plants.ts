@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { MyPlant } from '../types';
+import { getSpecies } from '../data/species';
+import { defaultPlacement, guessPlacement } from '../lib/frost';
+import type { MyPlant, Placement } from '../types';
 
 const STORAGE_KEY = 'mygarden:plants:v1';
 const BACKUP_KEY = 'mygarden:plants:corrupt';
@@ -41,7 +43,20 @@ function sanitize(plant: MyPlant): MyPlant {
     customWateringDays:
       typeof plant.customWateringDays === 'number' && plant.customWateringDays > 0 ? plant.customWateringDays : null,
     potDiameterCm: typeof plant.potDiameterCm === 'number' && plant.potDiameterCm > 0 ? plant.potDiameterCm : null,
+    placement: isPlacement(plant.placement) ? plant.placement : migratePlacement(plant),
   };
+}
+
+function isPlacement(value: unknown): value is Placement {
+  return value === 'indoor' || value === 'outdoor-pot' || value === 'ground';
+}
+
+/** Les anciennes versions ne savaient pas où vivait la plante : on le devine de l'emplacement puis de l'espèce. */
+function migratePlacement(plant: MyPlant): Placement {
+  const species = typeof plant.speciesId === 'string' ? getSpecies(plant.speciesId) : undefined;
+  const location = typeof plant.location === 'string' ? plant.location : '';
+  const potted = typeof plant.potDiameterCm === 'number' && plant.potDiameterCm > 0;
+  return guessPlacement(location) ?? defaultPlacement(species, potted);
 }
 
 /** Les anciennes versions stockaient une URI absolue, qui change à la mise à jour de l'app. */

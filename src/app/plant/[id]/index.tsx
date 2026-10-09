@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../../components/Button';
 import { CareSheet, CareStats } from '../../../components/CareSheet';
+import { ColdCard } from '../../../components/ColdCard';
 import { PlantPhoto } from '../../../components/PlantPhoto';
 import { wateringTone } from '../../../components/WateringBadge';
 import { useGarden } from '../../../context/GardenContext';
@@ -112,6 +113,8 @@ export default function PlantDetailScreen() {
           </View>
           <Button label="J’ai arrosé aujourd’hui" icon="checkmark" size="lg" onPress={() => markWatered(plant.id)} />
         </View>
+
+        <ColdCard plant={plant} species={species} />
 
         {species && <CareStats species={species} />}
 

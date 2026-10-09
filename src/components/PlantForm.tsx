@@ -6,11 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SPECIES, getSpecies } from '../data/species';
 import { getWateringGuide } from '../data/watering';
 import { formatEvery, wateringIntervalDays } from '../lib/care';
+import { PLACEMENT_LABELS, defaultPlacement } from '../lib/frost';
 import { deletePhoto, pickPhoto, type PhotoSource } from '../lib/photos';
 import { notify } from '../lib/notify';
 import { formatVolume, wateringAmountMl } from '../lib/watering';
 import { CATEGORY_TONES, card, colors, fonts, radius, spacing, type } from '../theme';
-import type { NewPlant } from '../types';
+import type { NewPlant, Placement } from '../types';
 import { Button } from './Button';
 import { Chip } from './Chip';
 import { PlantPhoto } from './PlantPhoto';
@@ -66,6 +67,8 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const [customDays, setCustomDays] = useState(initial?.customWateringDays ? String(initial.customWateringDays) : '');
   const [potDiameter, setPotDiameter] = useState(initial?.potDiameterCm ? String(initial.potDiameterCm) : '');
   const [watered, setWatered] = useState<WateredChoice>(initial ? 'keep' : 'today');
+  // Nouvelle plante : suit l'espèce choisie tant que l'utilisateur n'a rien choisi lui-même.
+  const [chosenPlacement, setChosenPlacement] = useState<Placement | null>(initial?.placement ?? null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const draftPhoto = useRef<string | null>(photoUri);
@@ -91,6 +94,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const guide = species ? getWateringGuide(species) : null;
   const amountMl = guide ? wateringAmountMl(guide, validDiameter) : null;
   const speciesTone = species ? CATEGORY_TONES[species.category] : null;
+  const placement = chosenPlacement ?? defaultPlacement(species, validDiameter !== null);
 
   /** Efface une photo copiée pendant la saisie mais finalement non retenue. */
   function discardDraftPhoto(uri: string | null) {
@@ -131,6 +135,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
       lastWateredAt: wateredAt(watered, initial?.lastWateredAt ?? null),
       customWateringDays: validCustomDays,
       potDiameterCm: validDiameter,
+      placement,
     });
   }
 
@@ -211,6 +216,23 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
               placeholderTextColor={colors.muted}
               style={styles.inputInner}
             />
+          </View>
+        </Field>
+
+        <Field
+          label="Où vit-elle ?"
+          hint={placement === 'indoor' ? undefined : 'Dehors, l’app vous dit quand la rentrer ou la protéger du froid.'}
+        >
+          <View style={styles.chips}>
+            {(Object.keys(PLACEMENT_LABELS) as Placement[]).map((key) => (
+              <Chip
+                key={key}
+                label={PLACEMENT_LABELS[key]}
+                icon={key === 'indoor' ? 'home-outline' : key === 'outdoor-pot' ? 'flower-outline' : 'leaf-outline'}
+                selected={placement === key}
+                onPress={() => setChosenPlacement(key)}
+              />
+            ))}
           </View>
         </Field>
 

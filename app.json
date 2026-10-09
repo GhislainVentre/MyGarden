@@ -50,6 +50,15 @@
           "resizeMode": "contain",
           "backgroundColor": "#F5F1E8"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MyGarden utilise votre position approximative pour connaître la météo des prochaines nuits et vous dire quand protéger vos plantes du froid.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
       ]
     ]
   }

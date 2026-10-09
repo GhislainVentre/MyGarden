@@ -47,6 +47,9 @@ export interface WateringGuide {
   potShare: number | null;
 }
 
+/** Où vit la plante : à l'intérieur, dehors en pot ou en pleine terre. */
+export type Placement = 'indoor' | 'outdoor-pot' | 'ground';
+
 /** Plante enregistrée par l'utilisateur. */
 export interface MyPlant {
   id: string;
@@ -62,6 +65,8 @@ export interface MyPlant {
   customWateringDays: number | null;
   /** Diamètre du pot en centimètres, pour calculer la quantité d'eau ; null en pleine terre ou si inconnu. */
   potDiameterCm: number | null;
+  /** Où vit la plante ; décide des conseils contre le froid. */
+  placement: Placement;
 }
 
 export type NewPlant = Omit<MyPlant, 'id' | 'createdAt'>;

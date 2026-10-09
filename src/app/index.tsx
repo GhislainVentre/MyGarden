@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWind
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../components/Button';
+import { ColdSummary } from '../components/ColdSummary';
 import { PlantPhoto } from '../components/PlantPhoto';
 import { WateringBadge } from '../components/WateringBadge';
 import { useGarden } from '../context/GardenContext';
@@ -94,6 +95,7 @@ export default function MyPlantsScreen() {
                 </View>
               </LinearGradient>
             )}
+            <ColdSummary rows={rows} />
             {plants.length > 0 && <Text style={[type.label, styles.sectionLabel]}>Mes plantes</Text>}
           </View>
         }

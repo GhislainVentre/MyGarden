@@ -19,6 +19,7 @@ const plant: MyPlant = {
   lastWateredAt: null,
   customWateringDays: null,
   potDiameterCm: null,
+  placement: 'indoor',
 };
 
 beforeEach(() => AsyncStorage.clear());
@@ -78,5 +79,21 @@ describe('savePlants', () => {
   it('keeps the last write when several saves overlap', async () => {
     await Promise.all([savePlants([plant]), savePlants([]), savePlants([plant, { ...plant, id: 'c' }])]);
     expect(await loadPlants()).toHaveLength(2);
+  });
+});
+
+describe('loadPlants placement', () => {
+  it('guesses where older plants live', async () => {
+    await AsyncStorage.setItem(
+      'mygarden:plants:v1',
+      JSON.stringify([
+        { id: 'a', nickname: 'Citron', speciesId: 'citronnier', location: 'Balcon' },
+        { id: 'b', nickname: 'Buis', speciesId: 'buis', location: '' },
+        { id: 'c', nickname: 'Buis du perron', speciesId: 'buis', location: '', potDiameterCm: 40 },
+        { id: 'd', nickname: 'Monstie', speciesId: 'monstera', location: 'Salon', placement: 'outdoor-pot' },
+        { id: 'e', nickname: 'Inconnue', speciesId: null, location: '' },
+      ]),
+    );
+    expect((await loadPlants()).map((p) => p.placement)).toEqual(['outdoor-pot', 'ground', 'outdoor-pot', 'outdoor-pot', 'indoor']);
   });
 });
