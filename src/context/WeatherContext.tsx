@@ -12,6 +12,7 @@ import {
   makePlace,
   parseForecast,
   parseGeocoding,
+  placeKey,
   type ColdNight,
   type Forecast,
   type WeatherPlace,
@@ -45,8 +46,25 @@ async function readJson<T>(key: string): Promise<T | null> {
   }
 }
 
+/** Rejette si la promesse ne se termine pas à temps (GPS qui ne répond pas, réseau bloqué). */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Délai dépassé')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function fetchJson(url: string): Promise<unknown> {
-  const response = await fetch(url);
+  const response = await withTimeout(fetch(url), 15_000);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
@@ -57,25 +75,35 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const state = useRef({ place: null as WeatherPlace | null, forecast: null as Forecast | null, inFlight: false });
+  const state = useRef({
+    place: null as WeatherPlace | null,
+    forecast: null as Forecast | null,
+    /** Lieu en cours de chargement, et numéro de la dernière requête : une réponse plus ancienne est ignorée. */
+    loadingKey: null as string | null,
+    request: 0,
+  });
 
   const load = useCallback(async (target: WeatherPlace, force = false) => {
-    if (state.current.inFlight) return;
-    if (!force && isFresh(state.current.forecast, target)) return;
-    state.current.inFlight = true;
+    const key = placeKey(target);
+    if (!force && (state.current.loadingKey === key || isFresh(state.current.forecast, target))) return;
+    const request = ++state.current.request;
+    state.current.loadingKey = key;
     setLoading(true);
     try {
       const next = parseForecast(await fetchJson(forecastUrl(target)), target);
       if (!next) throw new Error('Réponse inattendue');
+      if (request !== state.current.request) return;
       state.current.forecast = next;
       setForecast(next);
       setError(null);
       await AsyncStorage.setItem(FORECAST_KEY, JSON.stringify(next)).catch(() => {});
     } catch {
-      setError('Météo indisponible pour le moment (pas de connexion ?).');
+      if (request === state.current.request) setError('Météo indisponible pour le moment (pas de connexion ?).');
     } finally {
-      state.current.inFlight = false;
-      setLoading(false);
+      if (request === state.current.request) {
+        state.current.loadingKey = null;
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -103,6 +131,7 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
     async (next: WeatherPlace) => {
       state.current.place = next;
       setPlace(next);
+      setError(null);
       await AsyncStorage.setItem(PLACE_KEY, JSON.stringify(next)).catch(() => {});
       await load(next, true);
     },
@@ -113,11 +142,12 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) return 'Sans accès à la position, tapez plutôt le nom de votre ville.';
+      // Dernière position connue si elle date de moins d'une heure, sinon une position approchée fraîche.
       const position =
-        (await Location.getLastKnownPositionAsync()) ??
-        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }));
+        (await Location.getLastKnownPositionAsync({ maxAge: 60 * 60 * 1000 }).catch(() => null)) ??
+        (await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }), 20_000));
       const { latitude, longitude } = position.coords;
-      const address = await Location.reverseGeocodeAsync({ latitude, longitude })
+      const address = await withTimeout(Location.reverseGeocodeAsync({ latitude, longitude }), 10_000)
         .then((results) => results[0])
         .catch(() => undefined);
       await choose(makePlace(latitude, longitude, address?.city ?? address?.subregion ?? ''));
@@ -143,14 +173,19 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
   );
 
   const forget = useCallback(() => {
-    state.current = { place: null, forecast: null, inFlight: state.current.inFlight };
+    state.current = { place: null, forecast: null, loadingKey: null, request: state.current.request + 1 };
+    setLoading(false);
     setPlace(null);
     setForecast(null);
     setError(null);
     AsyncStorage.multiRemove([PLACE_KEY, FORECAST_KEY]).catch(() => {});
   }, []);
 
-  const night = useMemo(() => (place ? coldestNight(forecast, now) : null), [place, forecast, now]);
+  // Prévisions d'un autre lieu (ville changée, chargement en cours) : on ne les montre pas.
+  const night = useMemo(
+    () => (place && forecast?.placeKey === placeKey(place) ? coldestNight(forecast, now) : null),
+    [place, forecast, now],
+  );
 
   const value = useMemo(
     () => ({ place, night, loading, error, locateMe, chooseCity, forget }),
