@@ -25,7 +25,8 @@ export function defaultPlacement(species: PlantSpecies | undefined, potted = fal
 
 const INDOOR_WORDS = ['veranda', 'jardin d hiver', 'serre', 'salon', 'chambre', 'cuisine', 'bureau', 'salle de bain', 'entree'];
 const GROUND_WORDS = ['jardin', 'potager', 'massif', 'haie', 'pelouse', 'verger', 'allee', 'bordure', 'rocaille', 'pleine terre', 'parterre', 'cour'];
-const POT_WORDS = ['balcon', 'terrasse', 'rebord', 'dehors', 'exterieur', 'patio', 'loggia', 'perron', 'jardiniere', 'bac'];
+// « Dehors » ou « extérieur » ne disent pas si c'est en pot : l'espèce décide alors.
+const POT_WORDS = ['balcon', 'terrasse', 'rebord', 'patio', 'loggia', 'perron', 'jardiniere', 'bac', 'pot'];
 
 /** Devine l'emplacement à partir du texte saisi (« Balcon », « Massif du jardin »…), ou null. */
 export function guessPlacement(location: string): Placement | null {
@@ -139,7 +140,10 @@ export function coldAdvice(
       });
       actions.push({ icon: 'leaf-outline', text: 'Paillez épais le pied, sur 15 à 20 cm (feuilles mortes, paille).' });
       if (level === 'urgent') {
-        actions.push({ icon: 'home-outline', text: `Elle ne supporte pas moins de ${formatTemp(minC)} : si vous pouvez, rempotez-la et rentrez-la à l’abri.` });
+        actions.push({
+          icon: 'shield-outline',
+          text: `Elle ne supporte pas moins de ${formatTemp(minC)} : laissez le voile en place tant que les nuits restent aussi froides.`,
+        });
       }
     }
   } else if (potted) {

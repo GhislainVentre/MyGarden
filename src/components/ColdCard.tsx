@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useGarden } from '../context/GardenContext';
 import { useWeather } from '../context/WeatherContext';
-import { coldAdvice, formatTemp, type ColdLevel } from '../lib/frost';
+import { PLACEMENT_LABELS, coldAdvice, formatTemp, type ColdLevel } from '../lib/frost';
 import { colors, fonts, radius, spacing, type, type Tone } from '../theme';
-import type { MyPlant, PlantSpecies } from '../types';
+import type { MyPlant, Placement, PlantSpecies } from '../types';
 import { Button } from './Button';
+import { Chip } from './Chip';
 import { WeatherSetup } from './WeatherSetup';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -21,6 +23,7 @@ export const COLD_TONES: Record<ColdLevel, Tone & { icon: IconName }> = {
 /** Conseils contre le froid d'une plante d'extérieur, selon la météo des prochaines nuits. */
 export function ColdCard({ plant, species }: { plant: MyPlant; species: PlantSpecies | undefined }) {
   const { place, night, error } = useWeather();
+  const { updatePlant } = useGarden();
   const [setupOpen, setSetupOpen] = useState(false);
   const advice = coldAdvice(species, plant.placement, night?.minC ?? null);
   if (!advice) return null;
@@ -55,6 +58,17 @@ export function ColdCard({ plant, species }: { plant: MyPlant; species: PlantSpe
           </View>
         ))}
       </View>
+      <View style={styles.placement}>
+        <Text style={type.caption}>Elle vit :</Text>
+        {(['outdoor-pot', 'ground', 'indoor'] as Placement[]).map((key) => (
+          <Chip
+            key={key}
+            label={PLACEMENT_LABELS[key]}
+            selected={plant.placement === key}
+            onPress={() => updatePlant(plant.id, { placement: key })}
+          />
+        ))}
+      </View>
       {!place ? (
         <Button label="Activer la météo locale" icon="partly-sunny-outline" variant="secondary" onPress={() => setSetupOpen(true)} />
       ) : null}
@@ -77,4 +91,5 @@ const styles = StyleSheet.create({
   action: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   actionIcon: { marginTop: 2 },
   actionText: { flex: 1 },
+  placement: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
 });

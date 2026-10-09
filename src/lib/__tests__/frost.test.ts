@@ -39,6 +39,15 @@ describe('coldAdvice', () => {
     expect(advice.actions.map((a) => a.icon)).toEqual(expect.arrayContaining(['shield-outline', 'leaf-outline']));
   });
 
+  it('never tells to bring inside a plant in the ground', () => {
+    for (const species of [citronnier, getSpecies('geranium')!, getSpecies('bougainvillier')!, getSpecies('monstera')!, olivier, tomate, aloe]) {
+      for (const night of [-10, -3, 0, 3, 6, 10, null]) {
+        const advice = coldAdvice(species, 'ground', night)!;
+        expect(`${advice.title} ${advice.actions.map((a) => a.text).join(' ')}`).not.toMatch(/rentr|intérieur/i);
+      }
+    }
+  });
+
   it('leaves hardy plants alone at 3 °C', () => {
     const advice = coldAdvice(buis, 'ground', 3)!;
     expect(advice.level).toBe('ok');
@@ -75,6 +84,8 @@ describe('placement', () => {
     expect(guessPlacement('Jardin d’hiver')).toBe('indoor');
     expect(guessPlacement('Salon')).toBe('indoor');
     expect(guessPlacement('Chez mamie')).toBeNull();
+    expect(guessPlacement('Dehors')).toBeNull();
+    expect(guessPlacement('Extérieur')).toBeNull();
   });
 
   it('defaults from the species category', () => {
