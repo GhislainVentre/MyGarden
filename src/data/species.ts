@@ -1,10 +1,23 @@
 import type { PlantSpecies } from '../types';
+import { BAMBOO_SPECIES } from './species-bamboos';
+import { CACTUS_SPECIES } from './species-cacti';
+import { CRASSULA_SPECIES } from './species-crassulas';
+import { EDIBLE_SPECIES_2 } from './species-edible-2';
+import { EDIBLE_SPECIES_3 } from './species-edible-3';
+import { EXOTIC_SPECIES } from './species-exotic';
 import { FRUIT_TREE_SPECIES } from './species-fruit-trees';
 import { GARDEN_SPECIES } from './species-garden';
+import { GARDEN_SPECIES_2 } from './species-garden-2';
+import { GARDEN_SPECIES_3 } from './species-garden-3';
 import { INDOOR_SPECIES } from './species-indoor';
 import { INDOOR_SPECIES_2 } from './species-indoor-2';
+import { INDOOR_SPECIES_3 } from './species-indoor-3';
 import { ORNAMENTAL_SPECIES } from './species-ornamental';
+import { SEDUM_SPECIES } from './species-sedums';
 import { SUCCULENT_SPECIES } from './species-succulents';
+import { SUCCULENT_SPECIES_2 } from './species-succulents-2';
+import { TREES_CLIMBERS_SPECIES } from './species-trees-climbers';
+import { TROPICAL_SPECIES } from './species-tropical';
 import { VEGETABLE_SPECIES } from './species-vegetables';
 
 /**
@@ -141,7 +154,7 @@ const BASE_SPECIES: PlantSpecies[] = [
     id: 'ficus-elastica',
     commonName: 'Caoutchouc',
     scientificName: 'Ficus elastica',
-    otherNames: ['Ficus elastica', 'Arbre à caoutchouc'],
+    otherNames: ['Ficus elastica', 'Arbre à caoutchouc', 'Ficus Robusta', 'Ficus elastica Robusta', 'Ficus elastica Decora'],
     family: 'Moraceae',
     category: 'interieur',
     description: 'Feuilles épaisses et brillantes, robuste et facile à vivre.',
@@ -403,7 +416,7 @@ const BASE_SPECIES: PlantSpecies[] = [
     id: 'romarin',
     commonName: 'Romarin',
     scientificName: 'Salvia rosmarinus',
-    otherNames: ['Rosmarinus officinalis'],
+    otherNames: ['Rosmarinus officinalis', 'Romarin officinal', 'Romarin dressé'],
     family: 'Lamiaceae',
     category: 'aromatique',
     description: 'Arbuste méditerranéen persistant, parfumé et mellifère.',
@@ -605,6 +618,19 @@ export const SPECIES: PlantSpecies[] = [
   ...ORNAMENTAL_SPECIES,
   ...FRUIT_TREE_SPECIES,
   ...VEGETABLE_SPECIES,
+  ...TROPICAL_SPECIES,
+  ...GARDEN_SPECIES_2,
+  ...EDIBLE_SPECIES_2,
+  ...EXOTIC_SPECIES,
+  ...BAMBOO_SPECIES,
+  ...SEDUM_SPECIES,
+  ...CACTUS_SPECIES,
+  ...SUCCULENT_SPECIES_2,
+  ...CRASSULA_SPECIES,
+  ...INDOOR_SPECIES_3,
+  ...GARDEN_SPECIES_3,
+  ...TREES_CLIMBERS_SPECIES,
+  ...EDIBLE_SPECIES_3,
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));

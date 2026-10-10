@@ -1,14 +1,23 @@
-import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../../components/Button';
-import { CareSheet } from '../../../components/CareSheet';
+import { CareSheet, CareStats } from '../../../components/CareSheet';
+import { ColdCard } from '../../../components/ColdCard';
 import { PlantPhoto } from '../../../components/PlantPhoto';
-import { WateringBadge } from '../../../components/WateringBadge';
+import { wateringTone } from '../../../components/WateringBadge';
 import { useGarden } from '../../../context/GardenContext';
 import { getSpecies } from '../../../data/species';
-import { daysUntilWatering, formatEvery, wateringIntervalDays } from '../../../lib/care';
-import { colors, radius, spacing } from '../../../theme';
+import { getWateringGuide } from '../../../data/watering';
+import { daysUntilWatering, formatEvery, wateringIntervalDays, wateringLabel } from '../../../lib/care';
+import { formatVolume, wateringAmountMl } from '../../../lib/watering';
+import { goBack } from '../../../lib/navigation';
+import { useNow } from '../../../lib/useNow';
+import { card, colors, fonts, radius, spacing, type } from '../../../theme';
 
 function confirmDelete(name: string, onConfirm: () => void) {
   const message = `Supprimer « ${name} » de votre jardin ? Cette action est définitive.`;
@@ -24,108 +33,177 @@ function confirmDelete(name: string, onConfirm: () => void) {
 
 export default function PlantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { plants, markWatered, removePlant } = useGarden();
+  const { plants, loading, markWatered, removePlant } = useGarden();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const now = useNow();
   const plant = plants.find((p) => p.id === id);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   if (!plant) {
     return (
       <View style={styles.center}>
-        <Text style={styles.muted}>Cette plante n’existe plus.</Text>
+        <Text style={type.body}>Cette plante n’existe plus.</Text>
+        <Button label="Retour au jardin" icon="arrow-back" variant="secondary" onPress={() => router.replace('/')} />
       </View>
     );
   }
 
   const species = getSpecies(plant.speciesId);
-  const days = daysUntilWatering(plant, species);
-  const interval = wateringIntervalDays(plant, species);
+  const days = daysUntilWatering(plant, species, now);
+  const interval = wateringIntervalDays(plant, species, now);
+  const tone = wateringTone(days);
+  const amountMl = species ? wateringAmountMl(getWateringGuide(species), plant.potDiameterCm) : null;
   const lastWatered = plant.lastWateredAt
     ? new Date(plant.lastWateredAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
     : null;
+  const heroHeight = Math.min(width * 0.95, 420);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Stack.Screen options={{ title: plant.nickname }} />
-
-      <View style={styles.hero}>
-        <PlantPhoto uri={plant.photoUri} size={220} rounded={radius.lg} />
-        <Text style={styles.name}>{plant.nickname}</Text>
-        <Text style={styles.muted}>
-          {species ? species.commonName : 'Espèce non renseignée'}
-          {plant.location ? ` · ${plant.location}` : ''}
-        </Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>💧 Suivi de l’arrosage</Text>
-        <WateringBadge days={days} />
-        <Text style={styles.body}>
-          Dernier arrosage : {lastWatered ?? 'inconnu'}
-          {'\n'}Fréquence : {formatEvery(interval)}
-          {plant.customWateringDays ? ' (personnalisée)' : species ? ' (selon la saison)' : ' (par défaut)'}
-        </Text>
-        <Button label="J’ai arrosé aujourd’hui" onPress={() => markWatered(plant.id)} />
-      </View>
-
-      {plant.notes ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>📝 Notes</Text>
-          <Text style={styles.body}>{plant.notes}</Text>
-        </View>
-      ) : null}
-
-      <Text style={styles.sectionTitle}>Fiche d’entretien</Text>
-      {species ? (
-        <CareSheet species={species} />
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.body}>
-            Renseignez l’espèce de cette plante pour afficher ses conseils d’arrosage, de lumière, de terre et d’engrais.
+    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + spacing.xxl }]} bounces={false}>
+      <StatusBar style="light" />
+      <View style={[styles.hero, { height: heroHeight }]}>
+        <PlantPhoto uri={plant.photoUri} width={9999} height={heroHeight} rounded={0} style={styles.heroPhoto} />
+        <LinearGradient
+          colors={['rgba(31,42,34,0.35)', 'transparent', 'rgba(31,42,34,0.75)']}
+          locations={[0, 0.45, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+          onPress={goBack}
+          hitSlop={8}
+          style={[styles.back, { top: insets.top + spacing.sm }]}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.onPrimary} />
+        </Pressable>
+        <View style={styles.heroText}>
+          <Text style={styles.heroName}>{plant.nickname}</Text>
+          <Text style={styles.heroSubtitle}>
+            {species ? species.commonName : 'Espèce non renseignée'}
+            {plant.location ? `  ·  ${plant.location}` : ''}
           </Text>
+        </View>
+      </View>
+
+      <View style={styles.content}>
+        <View style={[styles.waterCard, { backgroundColor: tone.bg }]}>
+          <View style={styles.waterHeader}>
+            <View style={[styles.waterIcon, { backgroundColor: tone.fg }]}>
+              <Ionicons name="water" size={22} color={colors.onPrimary} />
+            </View>
+            <View style={styles.waterText}>
+              <Text style={[styles.waterTitle, { color: tone.fg }]}>{wateringLabel(days)}</Text>
+              <Text style={type.caption}>
+                {lastWatered ? `Dernier arrosage : ${lastWatered}` : 'Dernier arrosage inconnu'}
+                {'\n'}
+                {`Fréquence : ${formatEvery(interval)}`}
+                {plant.customWateringDays ? ' (personnalisée)' : species ? ' (selon la saison)' : ' (par défaut)'}
+                {amountMl !== null ? `\nQuantité : environ ${formatVolume(amountMl)} (pot de ${plant.potDiameterCm} cm)` : ''}
+              </Text>
+            </View>
+          </View>
+          <Button label="J’ai arrosé aujourd’hui" icon="checkmark" size="lg" onPress={() => markWatered(plant.id)} />
+        </View>
+
+        <ColdCard plant={plant} species={species} />
+
+        {species && <CareStats species={species} />}
+
+        {plant.notes ? (
+          <View style={styles.notes}>
+            <View style={styles.notesHeader}>
+              <Ionicons name="create-outline" size={16} color={colors.muted} />
+              <Text style={type.label}>Mes notes</Text>
+            </View>
+            <Text style={type.body}>{plant.notes}</Text>
+          </View>
+        ) : null}
+
+        <Text style={type.title}>Fiche d’entretien</Text>
+        {species ? (
+          <CareSheet species={species} showStats={false} />
+        ) : (
+          <View style={styles.notes}>
+            <Text style={type.body}>
+              Renseignez l’espèce de cette plante pour afficher ses conseils d’arrosage, de lumière, de terre et d’engrais.
+            </Text>
+            <Button
+              label="Choisir l’espèce"
+              icon="search"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/plant/[id]/edit', params: { id: plant.id } })}
+            />
+          </View>
+        )}
+
+        <View style={styles.footer}>
           <Button
-            label="Choisir l’espèce"
+            label="Modifier"
+            icon="pencil"
             variant="secondary"
             onPress={() => router.push({ pathname: '/plant/[id]/edit', params: { id: plant.id } })}
           />
+          <Button
+            label="Supprimer"
+            icon="trash-outline"
+            variant="danger"
+            onPress={() =>
+              confirmDelete(plant.nickname, () => {
+                removePlant(plant.id);
+                goBack();
+              })
+            }
+          />
         </View>
-      )}
-
-      <View style={styles.footer}>
-        <Button
-          label="Modifier"
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/plant/[id]/edit', params: { id: plant.id } })}
-        />
-        <Button
-          label="Supprimer"
-          variant="danger"
-          onPress={() =>
-            confirmDelete(plant.nickname, () => {
-              removePlant(plant.id);
-              router.back();
-            })
-          }
-        />
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: 48 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hero: { alignItems: 'center', gap: spacing.xs },
-  name: { fontSize: 26, fontWeight: '800', color: colors.text, marginTop: spacing.sm, textAlign: 'center' },
-  muted: { fontSize: 15, color: colors.muted, textAlign: 'center' },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    gap: spacing.md,
+  container: {},
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
+  back: {
+    position: 'absolute',
+    left: spacing.lg,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(31,42,34,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: spacing.sm },
-  body: { fontSize: 15, lineHeight: 22, color: colors.text },
-  footer: { gap: spacing.sm, marginTop: spacing.md },
+  hero: {
+    width: '100%',
+    backgroundColor: colors.primaryLight,
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+    overflow: 'hidden',
+  },
+  heroPhoto: { width: '100%' },
+  heroText: { position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.lg, gap: 2 },
+  heroName: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 36, color: colors.onPrimary },
+  heroSubtitle: { fontFamily: fonts.bodyMedium, fontSize: 14, color: 'rgba(255,255,255,0.9)' },
+  content: {
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  waterCard: { borderRadius: radius.lg, padding: spacing.lg, gap: spacing.lg },
+  waterHeader: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  waterIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  waterText: { flex: 1, gap: 4 },
+  waterTitle: { fontFamily: fonts.display, fontSize: 20, lineHeight: 26 },
+  notes: { ...card, padding: spacing.lg, gap: spacing.sm },
+  notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  footer: { gap: spacing.sm, marginTop: spacing.sm },
 });
