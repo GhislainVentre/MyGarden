@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SPECIES, getSpecies } from '../data/species';
 import { getWateringGuide } from '../data/watering';
 import { formatEvery, wateringIntervalDays } from '../lib/care';
-import { PLACEMENT_LABELS, defaultPlacement } from '../lib/frost';
+import { defaultPlacement, guessPlacement } from '../lib/frost';
 import { deletePhoto, pickPhoto, type PhotoSource } from '../lib/photos';
 import { notify } from '../lib/notify';
 import { formatVolume, wateringAmountMl } from '../lib/watering';
@@ -94,7 +94,9 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   const guide = species ? getWateringGuide(species) : null;
   const amountMl = guide ? wateringAmountMl(guide, validDiameter) : null;
   const speciesTone = species ? CATEGORY_TONES[species.category] : null;
-  const placement = chosenPlacement ?? defaultPlacement(species, validDiameter !== null);
+  // Sans choix : d'après l'emplacement saisi (« Balcon », « Potager »…), sinon l'espèce.
+  const placement = chosenPlacement ?? guessPlacement(location) ?? defaultPlacement(species, validDiameter !== null);
+  const outdoor = placement !== 'indoor';
 
   /** Efface une photo copiée pendant la saisie mais finalement non retenue. */
   function discardDraftPhoto(uri: string | null) {
@@ -134,7 +136,7 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
       notes: notes.trim(),
       lastWateredAt: wateredAt(watered, initial?.lastWateredAt ?? null),
       customWateringDays: validCustomDays,
-      potDiameterCm: validDiameter,
+      potDiameterCm: placement === 'ground' ? null : validDiameter,
       placement,
     });
   }
@@ -219,22 +221,54 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
           </View>
         </Field>
 
-        <Field
-          label="Où vit-elle ?"
-          hint={placement === 'indoor' ? undefined : 'Dehors, l’app vous dit quand la rentrer ou la protéger du froid.'}
-        >
+        <Field label="Où vit-elle ?">
           <View style={styles.chips}>
-            {(Object.keys(PLACEMENT_LABELS) as Placement[]).map((key) => (
-              <Chip
-                key={key}
-                label={PLACEMENT_LABELS[key]}
-                icon={key === 'indoor' ? 'home-outline' : key === 'outdoor-pot' ? 'flower-outline' : 'leaf-outline'}
-                selected={placement === key}
-                onPress={() => setChosenPlacement(key)}
-              />
-            ))}
+            <Chip label="À l’intérieur" icon="home-outline" selected={!outdoor} onPress={() => setChosenPlacement('indoor')} />
+            <Chip
+              label="Dehors"
+              icon="sunny-outline"
+              selected={outdoor}
+              onPress={() => {
+                if (outdoor) return;
+                const guess = defaultPlacement(species, validDiameter !== null);
+                setChosenPlacement(guess === 'indoor' ? 'outdoor-pot' : guess);
+              }}
+            />
           </View>
         </Field>
+
+        {outdoor ? (
+          <Field label="En pot ou en pleine terre ?" hint="L’app vous dit quand la protéger du froid, et quand la rentrer si elle est en pot.">
+            <View style={styles.chips}>
+              <Chip label="En pot" icon="flower-outline" selected={placement === 'outdoor-pot'} onPress={() => setChosenPlacement('outdoor-pot')} />
+              <Chip label="En pleine terre" icon="leaf-outline" selected={placement === 'ground'} onPress={() => setChosenPlacement('ground')} />
+            </View>
+          </Field>
+        ) : null}
+
+        {placement !== 'ground' ? (
+          <Field
+            label="Diamètre du pot"
+            hint={
+              amountMl !== null
+                ? `Environ ${formatVolume(amountMl)} d’eau à chaque arrosage.`
+                : 'Facultatif : pour savoir combien d’eau verser.'
+            }
+          >
+            <View style={styles.inputRow}>
+              <Ionicons name="resize-outline" size={18} color={colors.water} />
+              <TextInput
+                value={potDiameter}
+                onChangeText={(text) => setPotDiameter(text.replace(/[^0-9]/g, '').slice(0, 3))}
+                keyboardType="number-pad"
+                placeholder="Ex. 14"
+                placeholderTextColor={colors.muted}
+                style={styles.inputInner}
+              />
+              <Text style={styles.suffix}>cm</Text>
+            </View>
+          </Field>
+        ) : null}
 
         <Field label="Dernier arrosage">
           <View style={styles.chips}>
@@ -263,28 +297,6 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
               style={styles.inputInner}
             />
             <Text style={styles.suffix}>jours</Text>
-          </View>
-        </Field>
-
-        <Field
-          label="Diamètre du pot"
-          hint={
-            amountMl !== null
-              ? `Environ ${formatVolume(amountMl)} d’eau à chaque arrosage.`
-              : 'Facultatif : pour savoir combien d’eau verser. Laissez vide en pleine terre.'
-          }
-        >
-          <View style={styles.inputRow}>
-            <Ionicons name="resize-outline" size={18} color={colors.water} />
-            <TextInput
-              value={potDiameter}
-              onChangeText={(text) => setPotDiameter(text.replace(/[^0-9]/g, '').slice(0, 3))}
-              keyboardType="number-pad"
-              placeholder="Ex. 14"
-              placeholderTextColor={colors.muted}
-              style={styles.inputInner}
-            />
-            <Text style={styles.suffix}>cm</Text>
           </View>
         </Field>
 
