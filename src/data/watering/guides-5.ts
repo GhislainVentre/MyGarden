@@ -209,6 +209,11 @@ export const WATERING_GUIDES_5: Record<string, WateringGuide> = {
     amount: 'Jeune arbre : 20 à 30 L par semaine en été. En bac de 60 L, environ 12 L (un cinquième) ; presque rien en hiver.',
     potShare: 0.2,
   },
+  'albizia-summer-chocolate': {
+    method: 'Arroser régulièrement au pied les deux premiers étés, puis laisser sécher la terre entre deux arrosages ; en bac, éviter toute eau stagnante.',
+    amount: 'Jeune arbre : 20 à 30 L par semaine en été. En bac de 60 L, environ 12 L (un cinquième) ; presque rien en hiver.',
+    potShare: 0.2,
+  },
   catalpa: {
     method: 'Arroser régulièrement au pied les premiers étés, en arrosages copieux et espacés ; ensuite seulement en sécheresse.',
     amount: 'Jeune arbre : 30 à 40 L par semaine en été. En bac (forme boule), un quart du volume, soit 12 L pour 50 L.',
