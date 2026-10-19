@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppFooter } from '../components/AppFooter';
 import { Button } from '../components/Button';
 import { ColdSummary } from '../components/ColdSummary';
 import { PlantPhoto } from '../components/PlantPhoto';
@@ -99,6 +100,7 @@ export default function MyPlantsScreen() {
             {plants.length > 0 && <Text style={[type.label, styles.sectionLabel]}>Mes plantes</Text>}
           </View>
         }
+        ListFooterComponent={<AppFooter />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>

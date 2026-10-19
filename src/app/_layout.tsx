@@ -7,8 +7,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { BotanicalBackground } from '../components/BotanicalBackground';
+import { UpdatePrompt } from '../components/UpdatePrompt';
 import { WateringReminders } from '../components/WateringReminders';
 import { GardenProvider } from '../context/GardenContext';
+import { UpdateProvider } from '../context/UpdateContext';
 import { WeatherProvider } from '../context/WeatherContext';
 import { colors, fonts } from '../theme';
 
@@ -37,26 +39,29 @@ export default function RootLayout() {
   return (
     <GardenProvider>
       <WeatherProvider>
-        <WateringReminders />
-        <StatusBar style="dark" />
-        <Stack
-          screenLayout={({ children }) => <BotanicalBackground>{children}</BotanicalBackground>}
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.background },
-            headerShadowVisible: false,
-            headerTintColor: colors.primary,
-            headerTitleStyle: { fontFamily: fonts.display, fontSize: 20, color: colors.text },
-            headerBackButtonDisplayMode: 'minimal',
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="plant/new" options={{ title: 'Nouvelle plante', presentation: 'modal' }} />
-          <Stack.Screen name="plant/[id]/index" options={{ headerShown: false }} />
-          <Stack.Screen name="plant/[id]/edit" options={{ title: 'Modifier', presentation: 'modal' }} />
-          <Stack.Screen name="species/index" options={{ title: 'Encyclopédie' }} />
-          <Stack.Screen name="species/[id]" options={{ title: 'Fiche d’entretien' }} />
-        </Stack>
+        <UpdateProvider>
+          <WateringReminders />
+          <UpdatePrompt />
+          <StatusBar style="dark" />
+          <Stack
+            screenLayout={({ children }) => <BotanicalBackground>{children}</BotanicalBackground>}
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.background },
+              headerShadowVisible: false,
+              headerTintColor: colors.primary,
+              headerTitleStyle: { fontFamily: fonts.display, fontSize: 20, color: colors.text },
+              headerBackButtonDisplayMode: 'minimal',
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="plant/new" options={{ title: 'Nouvelle plante', presentation: 'modal' }} />
+            <Stack.Screen name="plant/[id]/index" options={{ headerShown: false }} />
+            <Stack.Screen name="plant/[id]/edit" options={{ title: 'Modifier', presentation: 'modal' }} />
+            <Stack.Screen name="species/index" options={{ title: 'Encyclopédie' }} />
+            <Stack.Screen name="species/[id]" options={{ title: 'Fiche d’entretien' }} />
+          </Stack>
+        </UpdateProvider>
       </WeatherProvider>
     </GardenProvider>
   );

@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # « Run workflow » : compile et publie une version depuis n'importe quelle branche.
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-apk:
@@ -21,14 +25,39 @@ jobs:
           java-version: 17
       # Le SDK Android est déjà installé sur les runners ubuntu-latest (ANDROID_HOME).
       - run: npm ci
+      # Numéro de compilation croissant : l'appli le compare à la dernière version publiée.
+      - name: Numéro de version
+        run: |
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            const build = Number(process.env.GITHUB_RUN_NUMBER);
+            app.expo.version = '1.0.' + build;
+            app.expo.android.versionCode = build;
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
+          "
       # Génère le projet natif android/ à partir de app.json (non versionné).
       - run: npx expo prebuild --platform android --no-install
-      # APK de release signé avec la clé de debug : installable directement sur un téléphone.
+      # APK de release signé avec la clé de debug du modèle Expo, identique à chaque compilation :
+      # une nouvelle version s'installe par-dessus l'ancienne sans perdre les plantes.
       - name: Build APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
+      - run: cp android/app/build/outputs/apk/release/app-release.apk MyGarden.apk
       - uses: actions/upload-artifact@v4
         with:
           name: MyGarden-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: MyGarden.apk
           if-no-files-found: error
+      # Version proposée dans l'appli : chaque fusion dans main, ou un lancement à la main.
+      - name: Publier la version
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N="$GITHUB_RUN_NUMBER"
+          git log -1 --pretty=%B \
+            | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' -e '^Merge pull request' -e '^Merge branch' \
+            | sed '/./,$!d' > notes.txt
+          gh release create "build-$N" MyGarden.apk --title "MyGarden 1.0.$N" --notes-file notes.txt --target "$GITHUB_SHA" \
+            || gh release upload "build-$N" MyGarden.apk --clobber
