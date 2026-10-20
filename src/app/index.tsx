@@ -4,12 +4,13 @@ import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppFooter } from '../components/AppFooter';
+import { AppFooter, sendFeedback } from '../components/AppFooter';
 import { Button } from '../components/Button';
 import { ColdSummary } from '../components/ColdSummary';
 import { PlantPhoto } from '../components/PlantPhoto';
 import { WateringBadge } from '../components/WateringBadge';
 import { useGarden } from '../context/GardenContext';
+import { useUpdates } from '../context/UpdateContext';
 import { getSpecies } from '../data/species';
 import { compareUrgency, daysUntilWatering } from '../lib/care';
 import { useNow } from '../lib/useNow';
@@ -36,6 +37,7 @@ function capitalize(text: string): string {
 
 export default function MyPlantsScreen() {
   const { plants, loading } = useGarden();
+  const { installedVersion } = useUpdates();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const now = useNow();
@@ -70,9 +72,20 @@ export default function MyPlantsScreen() {
         contentContainerStyle={[styles.list, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + 110 }]}
         ListHeaderComponent={
           <View style={styles.header}>
-            <View>
-              <Text style={type.caption}>{dateLabel}</Text>
-              <Text style={type.hero}>{greeting(now)} 🌿</Text>
+            <View style={styles.greetingRow}>
+              <View style={styles.greeting}>
+                <Text style={type.caption}>{dateLabel}</Text>
+                <Text style={type.hero}>{greeting(now)} 🌿</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Donner mon avis"
+                onPress={() => sendFeedback(installedVersion)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.feedback, pressed && styles.pressed]}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
+              </Pressable>
             </View>
             {plants.length > 0 && (
               <LinearGradient
@@ -147,6 +160,16 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: spacing.lg },
   column: { gap: spacing.md },
   header: { gap: spacing.lg, marginBottom: spacing.md },
+  greetingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  greeting: { flex: 1 },
+  feedback: {
+    ...card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   summary: {
     flexDirection: 'row',
     alignItems: 'center',
