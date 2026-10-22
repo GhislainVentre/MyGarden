@@ -6,6 +6,11 @@ on:
   pull_request:
   # « Run workflow » : compile et publie une version depuis n'importe quelle branche.
   workflow_dispatch:
+    inputs:
+      notes:
+        description: Nouveautés affichées dans l'appli (sinon le message du dernier commit)
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -54,10 +59,15 @@ jobs:
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ inputs.notes }}
         run: |
           N="$GITHUB_RUN_NUMBER"
-          git log -1 --pretty=%B \
-            | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' -e '^Merge pull request' -e '^Merge branch' \
-            | sed '/./,$!d' > notes.txt
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > notes.txt
+          else
+            git log -1 --pretty=%B \
+              | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' -e '^Merge pull request' -e '^Merge branch' \
+              | sed '/./,$!d' > notes.txt
+          fi
           gh release create "build-$N" MyGarden.apk --title "MyGarden 1.0.$N" --notes-file notes.txt --target "$GITHUB_SHA" \
             || gh release upload "build-$N" MyGarden.apk --clobber
