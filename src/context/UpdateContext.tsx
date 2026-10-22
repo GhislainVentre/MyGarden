@@ -121,7 +121,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
-  // Vérification au lancement puis au retour dans l'appli, au plus toutes les 6 heures.
+  // Vérification à chaque lancement, puis au retour dans l'appli au plus toutes les 6 heures.
   useEffect(() => {
     if (!SUPPORTED) return;
     let active = true;
@@ -133,7 +133,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       saved.current = value;
       cleanDownloads();
-      autoCheck();
+      check(false);
     });
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') autoCheck();
