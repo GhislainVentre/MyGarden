@@ -1,9 +1,11 @@
 import { SPECIES, getSpecies } from '../../data/species';
 import {
   DEFAULT_WATERING_DAYS,
+  compareUrgency,
   daysUntilWatering,
   formatEvery,
   isGrowingSeason,
+  normalize,
   searchSpecies,
   wateringIntervalDays,
   wateringLabel,
@@ -76,7 +78,7 @@ describe('searchSpecies', () => {
   it('ignores case and accents and matches alternative names', () => {
     expect(searchSpecies(SPECIES, 'SANSEVIERE').map((s) => s.id)).toContain('sansevieria');
     expect(searchSpecies(SPECIES, 'langue de belle').map((s) => s.id)).toContain('sansevieria');
-    expect(searchSpecies(SPECIES, 'ocimum').map((s) => s.id)).toEqual(['basilic']);
+    expect(searchSpecies(SPECIES, 'ocimum').map((s) => s.id)).toEqual(expect.arrayContaining(['basilic', 'basilic-thai']));
   });
 
   it('returns every species sorted by name for an empty query', () => {
@@ -97,5 +99,66 @@ describe('species database', () => {
       expect(s.temperature.minC).toBeLessThanOrEqual(s.temperature.idealMinC);
       expect(s.commonProblems.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('daysUntilWatering edge cases', () => {
+  it('returns null for an unparsable date', () => {
+    expect(daysUntilWatering({ customWateringDays: null, lastWateredAt: 'pas-une-date' }, monstera, JULY)).toBeNull();
+  });
+
+  it('counts calendar days, not elapsed hours', () => {
+    const lateEvening = new Date(2026, 6, 14, 23, 50).toISOString();
+    const earlyMorning = new Date(2026, 6, 15, 0, 10);
+    expect(daysUntilWatering({ customWateringDays: 1, lastWateredAt: lateEvening }, monstera, earlyMorning)).toBe(0);
+  });
+});
+
+describe('searchSpecies with apostrophes and ligatures', () => {
+  it("matches a keyboard apostrophe against a typographic one", () => {
+    expect(searchSpecies(SPECIES, "jasmin d'interieur").map((s) => s.id)).toEqual(
+      searchSpecies(SPECIES, 'jasmin d’intérieur').map((s) => s.id),
+    );
+  });
+
+  it('matches "coeur" against "cœur"', () => {
+    expect(searchSpecies(SPECIES, 'chaine des coeurs').length).toBeGreaterThan(0);
+  });
+});
+
+describe('searchSpecies typo tolerance', () => {
+  it('finds a plant despite a typo when nothing matches exactly', () => {
+    const ids = (q: string) => searchSpecies(SPECIES, q).map((s) => s.id);
+    expect(ids('sedum robustm')[0]).toBe('sedum-robustum');
+    expect(ids('calatea white fusion')[0]).toBe('calathea-white-fusion');
+    expect(ids('banaier')).toEqual(expect.arrayContaining(['bananier-nain-cavendish']));
+    expect(ids('monsterra')).toContain('monstera');
+  });
+
+  it('keeps exact matches when they exist', () => {
+    expect(searchSpecies(SPECIES, 'basilic').every((s) => normalize(s.commonName + s.scientificName + (s.otherNames ?? []).join(' ')).includes('basilic'))).toBe(true);
+  });
+
+  it('returns nothing for gibberish', () => {
+    expect(searchSpecies(SPECIES, 'xqzwv')).toEqual([]);
+  });
+
+  it('finds the Sedum Robustum and the Ficus Robusta by their usual names', () => {
+    expect(searchSpecies(SPECIES, 'sérum robustum').map((s) => s.id)).toContain('sedum-robustum');
+    expect(searchSpecies(SPECIES, 'ficus robusta').map((s) => s.id)).toContain('ficus-elastica');
+  });
+
+  it('finds Crassula ovata cultivars by their full name', () => {
+    expect(searchSpecies(SPECIES, 'Crassula ovata undulata').map((s) => s.id)).toEqual(['crassula-ovata-undulata']);
+    expect(searchSpecies(SPECIES, 'arbre de jade').map((s) => s.id)).toEqual(
+      expect.arrayContaining(['crassula', 'crassula-ovata-undulata']),
+    );
+  });
+});
+
+describe('compareUrgency', () => {
+  it('sorts overdue first and unknown dates last', () => {
+    const days = [3, null, -2, 0, null, 10];
+    expect([...days].sort(compareUrgency)).toEqual([-2, 0, 3, 10, null, null]);
   });
 });

@@ -586,7 +586,7 @@ export const ORNAMENTAL_SPECIES: PlantSpecies[] = [
     id: 'bambou-fargesia',
     commonName: 'Bambou non traçant',
     scientificName: 'Fargesia',
-    otherNames: ['Fargesia', 'Bambou cespiteux', 'Bambou', 'Fargesia rufa'],
+    otherNames: ['Fargesia', 'Bambou cespiteux', 'Bambou'],
     family: 'Poaceae',
     category: 'exterieur',
     description: 'Bambou en touffe qui ne s’étend pas, idéal en haie brise-vue ou en grand bac sur une terrasse.',

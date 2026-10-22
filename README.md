@@ -7,9 +7,16 @@ Application mobile (iOS, Android et web) pour enregistrer ses plantes avec une p
 - **Mes plantes** : liste de vos plantes avec photo, emplacement et état de l’arrosage, triée pour afficher en premier celles qui ont soif.
 - **Ajout d’une plante** : photo prise avec l’appareil ou choisie dans la galerie, espèce choisie dans l’encyclopédie, nom, emplacement, date du dernier arrosage, fréquence personnalisée et notes.
 - **Fiche de la plante** : suivi de l’arrosage (bouton « J’ai arrosé aujourd’hui »), prochaine échéance calculée selon la saison, et fiche d’entretien complète.
-- **Encyclopédie** : 300 plantes courantes (intérieur, succulentes, aromatiques, extérieur, potager) avec arrosage été/hiver, lumière, température, humidité, terre, engrais, rempotage, taille, toxicité pour les animaux et problèmes fréquents.
+- **Encyclopédie** : plus de 1 000 plantes (intérieur et tropicales, orchidées, bananiers et palmiers, succulentes, crassulas, sedums et cactus, bambous, aromatiques, vivaces et bulbes, arbres, haies et grimpantes, potager et fruitiers) avec arrosage été/hiver, lumière, température, humidité, terre, engrais, rempotage, taille, toxicité pour les animaux et problèmes fréquents.
 
 Les données restent sur le téléphone (AsyncStorage) et les photos sont copiées dans le dossier de l’application.
+
+## Design
+
+- Palette « jardin » : fond sable (`#F5F1E8`), vert forêt (`#2B5A3C`), touches d’eau, de soleil et de terre cuite pour les états d’arrosage.
+- Typographies : **Fraunces** pour les titres, **Nunito** pour le texte (chargées via `expo-font`).
+- Icônes Ionicons (`@expo/vector-icons`), dégradés `expo-linear-gradient`, icône et écran de démarrage dessinés dans `assets/`.
+- Les couleurs, espacements, rayons, ombres et styles de texte sont centralisés dans `src/theme.ts` ; les briques réutilisables (boutons, pastilles, champ de recherche, photo, badge d’arrosage) sont dans `src/components/`.
 
 ## Démarrer
 

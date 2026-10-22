@@ -427,7 +427,7 @@ export const VEGETABLE_SPECIES: PlantSpecies[] = [
     id: 'chou-pomme',
     commonName: 'Chou pommé',
     scientificName: 'Brassica oleracea var. capitata',
-    otherNames: ['Chou cabus', 'Chou blanc', 'Chou rouge', 'Chou de Milan', 'Chou frisé'],
+    otherNames: ['Chou cabus', 'Chou blanc', 'Chou rouge', 'Chou frisé'],
     family: 'Brassicaceae',
     category: 'potager',
     description: 'Chou à tête compacte, lisse ou cloqué, cultivable presque toute l’année selon les variétés.',

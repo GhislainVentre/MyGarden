@@ -1,12 +1,19 @@
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getSpecies } from '../data/species';
+import { SPECIES, getSpecies } from '../data/species';
+import { getWateringGuide } from '../data/watering';
 import { formatEvery, wateringIntervalDays } from '../lib/care';
-import { pickPhoto, type PhotoSource } from '../lib/photos';
-import { colors, radius, spacing } from '../theme';
-import type { NewPlant } from '../types';
+import { defaultPlacement, guessPlacement } from '../lib/frost';
+import { deletePhoto, pickPhoto, type PhotoSource } from '../lib/photos';
+import { notify } from '../lib/notify';
+import { formatVolume, wateringAmountMl } from '../lib/watering';
+import { CATEGORY_TONES, card, colors, fonts, radius, spacing, type } from '../theme';
+import type { NewPlant, Placement } from '../types';
 import { Button } from './Button';
+import { Chip } from './Chip';
 import { PlantPhoto } from './PlantPhoto';
 import { SpeciesPicker } from './SpeciesPicker';
 
@@ -18,17 +25,21 @@ interface Props {
   onSubmit: (plant: NewPlant) => void;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** Même heure il y a `days` jours, en jours civils (robuste aux changements d'heure). */
+function daysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
 
 function wateredAt(choice: WateredChoice, previous: string | null): string | null {
-  const now = Date.now();
   switch (choice) {
     case 'today':
-      return new Date(now).toISOString();
+      return new Date().toISOString();
     case 'yesterday':
-      return new Date(now - DAY_MS).toISOString();
+      return daysAgo(1).toISOString();
     case 'week':
-      return new Date(now - 7 * DAY_MS).toISOString();
+      return daysAgo(7).toISOString();
     case 'unknown':
       return null;
     case 'keep':
@@ -36,37 +47,87 @@ function wateredAt(choice: WateredChoice, previous: string | null): string | nul
   }
 }
 
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.field}>
+      <Text style={type.label}>{label}</Text>
+      {children}
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
 export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
+  const insets = useSafeAreaInsets();
   const [photoUri, setPhotoUri] = useState<string | null>(initial?.photoUri ?? null);
   const [nickname, setNickname] = useState(initial?.nickname ?? '');
   const [speciesId, setSpeciesId] = useState<string | null>(initial?.speciesId ?? null);
   const [location, setLocation] = useState(initial?.location ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [customDays, setCustomDays] = useState(initial?.customWateringDays ? String(initial.customWateringDays) : '');
+  const [potDiameter, setPotDiameter] = useState(initial?.potDiameterCm ? String(initial.potDiameterCm) : '');
   const [watered, setWatered] = useState<WateredChoice>(initial ? 'keep' : 'today');
+  // Nouvelle plante : suit l'espèce choisie tant que l'utilisateur n'a rien choisi lui-même.
+  const [chosenPlacement, setChosenPlacement] = useState<Placement | null>(initial?.placement ?? null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const draftPhoto = useRef<string | null>(photoUri);
+  const submitted = useRef(false);
+
+  useEffect(() => {
+    draftPhoto.current = photoUri;
+  }, [photoUri]);
+
+  // Photo copiée puis formulaire abandonné : on efface la copie.
+  useEffect(() => {
+    return () => {
+      if (!submitted.current && draftPhoto.current !== (initial?.photoUri ?? null)) deletePhoto(draftPhoto.current);
+    };
+  }, [initial?.photoUri]);
 
   const species = getSpecies(speciesId);
   const parsedDays = Number.parseInt(customDays, 10);
   const validCustomDays = Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : null;
   const suggestedDays = wateringIntervalDays({ customWateringDays: null }, species);
+  const parsedDiameter = Number.parseInt(potDiameter, 10);
+  const validDiameter = Number.isFinite(parsedDiameter) && parsedDiameter >= 3 && parsedDiameter <= 200 ? parsedDiameter : null;
+  const guide = species ? getWateringGuide(species) : null;
+  const amountMl = guide ? wateringAmountMl(guide, validDiameter) : null;
+  const speciesTone = species ? CATEGORY_TONES[species.category] : null;
+  // Sans choix : d'après l'emplacement saisi (« Balcon », « Potager »…), sinon l'espèce.
+  const placement = chosenPlacement ?? guessPlacement(location) ?? defaultPlacement(species, validDiameter !== null);
+  const outdoor = placement !== 'indoor';
+
+  /** Efface une photo copiée pendant la saisie mais finalement non retenue. */
+  function discardDraftPhoto(uri: string | null) {
+    if (uri && uri !== initial?.photoUri) deletePhoto(uri);
+  }
 
   async function choosePhoto(source: PhotoSource) {
     const result = await pickPhoto(source);
     if (!result) return;
     if ('error' in result) {
-      Alert.alert('Photo', result.error);
+      notify('Photo', result.error);
       return;
     }
+    discardDraftPhoto(photoUri);
     setPhotoUri(result.uri);
   }
 
+  function removePhoto() {
+    discardDraftPhoto(photoUri);
+    setPhotoUri(null);
+  }
+
   function submit() {
+    if (submitting) return;
     const name = nickname.trim() || species?.commonName;
     if (!name) {
-      Alert.alert('Nom manquant', 'Donnez un nom à votre plante ou choisissez son espèce.');
+      notify('Nom manquant', 'Donnez un nom à votre plante ou choisissez son espèce.');
       return;
     }
+    setSubmitting(true);
+    submitted.current = true;
     onSubmit({
       nickname: name,
       speciesId,
@@ -75,6 +136,8 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
       notes: notes.trim(),
       lastWateredAt: wateredAt(watered, initial?.lastWateredAt ?? null),
       customWateringDays: validCustomDays,
+      potDiameterCm: placement === 'ground' ? null : validDiameter,
+      placement,
     });
   }
 
@@ -88,83 +151,167 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + spacing.xxl }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.photoBlock}>
-          <PlantPhoto uri={photoUri} size={160} rounded={radius.lg} />
+          <View>
+            <PlantPhoto uri={photoUri} size={168} rounded={radius.xl} />
+            {photoUri && (
+              <Pressable
+                accessibilityLabel="Retirer la photo"
+                onPress={removePhoto}
+                hitSlop={8}
+                style={styles.removePhoto}
+              >
+                <Ionicons name="close" size={16} color={colors.onPrimary} />
+              </Pressable>
+            )}
+          </View>
           <View style={styles.photoButtons}>
             {Platform.OS !== 'web' && (
-              <Button label="📷 Prendre une photo" variant="secondary" onPress={() => choosePhoto('camera')} style={styles.flex} />
+              <Button label="Photo" icon="camera-outline" variant="secondary" onPress={() => choosePhoto('camera')} style={styles.flex} />
             )}
-            <Button label="🖼️ Galerie" variant="secondary" onPress={() => choosePhoto('library')} style={styles.flex} />
+            <Button label="Galerie" icon="images-outline" variant="secondary" onPress={() => choosePhoto('library')} style={styles.flex} />
           </View>
-          {photoUri && (
-            <Pressable onPress={() => setPhotoUri(null)} hitSlop={8}>
-              <Text style={styles.link}>Retirer la photo</Text>
-            </Pressable>
-          )}
         </View>
 
-        <Text style={styles.label}>Espèce</Text>
-        <Pressable accessibilityRole="button" style={styles.input} onPress={() => setPickerOpen(true)}>
-          <Text style={species ? styles.inputText : styles.placeholder}>
-            {species ? `${species.commonName} (${species.scientificName})` : 'Choisir dans l’encyclopédie…'}
-          </Text>
-        </Pressable>
+        <Field label="Espèce">
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.speciesPicker, pressed && styles.pressed]}
+            onPress={() => setPickerOpen(true)}
+          >
+            <View style={[styles.speciesIcon, { backgroundColor: speciesTone?.bg ?? colors.surfaceAlt }]}>
+              <Ionicons name={species ? 'leaf' : 'search'} size={20} color={speciesTone?.fg ?? colors.primary} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={species ? styles.speciesName : styles.placeholder} numberOfLines={1}>
+                {species ? species.commonName : 'Choisir dans l’encyclopédie'}
+              </Text>
+              <Text style={styles.speciesLatin} numberOfLines={1}>
+                {species ? species.scientificName : `${SPECIES.length} plantes avec leurs conseils d’entretien`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+          </Pressable>
+        </Field>
 
-        <Text style={styles.label}>Nom de la plante</Text>
-        <TextInput
-          value={nickname}
-          onChangeText={setNickname}
-          placeholder={species ? species.commonName : 'ex. Le monstera du salon'}
-          placeholderTextColor={colors.muted}
-          style={[styles.input, styles.inputText]}
-        />
+        <Field label="Nom de la plante">
+          <TextInput
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder={species ? species.commonName : 'ex. Le monstera du salon'}
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+          />
+        </Field>
 
-        <Text style={styles.label}>Emplacement</Text>
-        <TextInput
-          value={location}
-          onChangeText={setLocation}
-          placeholder="ex. Salon, balcon, chambre…"
-          placeholderTextColor={colors.muted}
-          style={[styles.input, styles.inputText]}
-        />
+        <Field label="Emplacement">
+          <View style={styles.inputRow}>
+            <Ionicons name="location-outline" size={18} color={colors.muted} />
+            <TextInput
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Salon, balcon, chambre…"
+              placeholderTextColor={colors.muted}
+              style={styles.inputInner}
+            />
+          </View>
+        </Field>
 
-        <Text style={styles.label}>Dernier arrosage</Text>
-        <View style={styles.chips}>
-          {wateredOptions.map((option) => (
-            <Pressable
-              key={option.key}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: watered === option.key }}
-              onPress={() => setWatered(option.key)}
-              style={[styles.chip, watered === option.key && styles.chipSelected]}
-            >
-              <Text style={[styles.chipText, watered === option.key && styles.chipTextSelected]}>{option.label}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Field label="Où vit-elle ?">
+          <View style={styles.chips}>
+            <Chip label="À l’intérieur" icon="home-outline" selected={!outdoor} onPress={() => setChosenPlacement('indoor')} />
+            <Chip
+              label="Dehors"
+              icon="sunny-outline"
+              selected={outdoor}
+              onPress={() => {
+                if (outdoor) return;
+                const guess = defaultPlacement(species, validDiameter !== null);
+                setChosenPlacement(guess === 'indoor' ? 'outdoor-pot' : guess);
+              }}
+            />
+          </View>
+        </Field>
 
-        <Text style={styles.label}>Fréquence d’arrosage personnalisée (jours)</Text>
-        <TextInput
-          value={customDays}
-          onChangeText={(text) => setCustomDays(text.replace(/[^0-9]/g, ''))}
-          keyboardType="number-pad"
-          placeholder={species ? `Conseillé en ce moment : ${formatEvery(suggestedDays)}` : 'Facultatif'}
-          placeholderTextColor={colors.muted}
-          style={[styles.input, styles.inputText]}
-        />
+        {outdoor ? (
+          <Field label="En pot ou en pleine terre ?" hint="L’app vous dit quand la protéger du froid, et quand la rentrer si elle est en pot.">
+            <View style={styles.chips}>
+              <Chip label="En pot" icon="flower-outline" selected={placement === 'outdoor-pot'} onPress={() => setChosenPlacement('outdoor-pot')} />
+              <Chip label="En pleine terre" icon="leaf-outline" selected={placement === 'ground'} onPress={() => setChosenPlacement('ground')} />
+            </View>
+          </Field>
+        ) : null}
 
-        <Text style={styles.label}>Notes</Text>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Date d’achat, rempotage, observations…"
-          placeholderTextColor={colors.muted}
-          style={[styles.input, styles.inputText, styles.notes]}
-          multiline
-        />
+        {placement !== 'ground' ? (
+          <Field
+            label="Diamètre du pot"
+            hint={
+              amountMl !== null
+                ? `Environ ${formatVolume(amountMl)} d’eau à chaque arrosage.`
+                : 'Facultatif : pour savoir combien d’eau verser.'
+            }
+          >
+            <View style={styles.inputRow}>
+              <Ionicons name="resize-outline" size={18} color={colors.water} />
+              <TextInput
+                value={potDiameter}
+                onChangeText={(text) => setPotDiameter(text.replace(/[^0-9]/g, '').slice(0, 3))}
+                keyboardType="number-pad"
+                placeholder="Ex. 14"
+                placeholderTextColor={colors.muted}
+                style={styles.inputInner}
+              />
+              <Text style={styles.suffix}>cm</Text>
+            </View>
+          </Field>
+        ) : null}
 
-        <Button label={submitLabel} onPress={submit} style={styles.submit} />
+        <Field label="Dernier arrosage">
+          <View style={styles.chips}>
+            {wateredOptions.map((option) => (
+              <Chip key={option.key} label={option.label} selected={watered === option.key} onPress={() => setWatered(option.key)} />
+            ))}
+          </View>
+        </Field>
+
+        <Field
+          label="Fréquence d’arrosage"
+          hint={
+            species
+              ? `Laissez vide pour suivre la fiche : ${formatEvery(suggestedDays)} en ce moment.`
+              : 'Facultatif. Sans espèce, l’app propose un arrosage hebdomadaire.'
+          }
+        >
+          <View style={styles.inputRow}>
+            <Ionicons name="water-outline" size={18} color={colors.water} />
+            <TextInput
+              value={customDays}
+              onChangeText={(text) => setCustomDays(text.replace(/[^0-9]/g, ''))}
+              keyboardType="number-pad"
+              placeholder="Tous les…"
+              placeholderTextColor={colors.muted}
+              style={styles.inputInner}
+            />
+            <Text style={styles.suffix}>jours</Text>
+          </View>
+        </Field>
+
+        <Field label="Notes">
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Date d’achat, rempotage, observations…"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, styles.notes]}
+            multiline
+          />
+        </Field>
+
+        <Button label={submitLabel} icon="checkmark" size="lg" onPress={submit} disabled={submitting} style={styles.submit} />
       </ScrollView>
 
       <SpeciesPicker
@@ -179,35 +326,44 @@ export function PlantForm({ initial, submitLabel, onSubmit }: Props) {
   );
 }
 
+const inputBase = {
+  backgroundColor: colors.surface,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: radius.md,
+  paddingHorizontal: spacing.lg,
+  minHeight: 52,
+};
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: spacing.lg, paddingBottom: 48 },
-  photoBlock: { alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
+  container: { padding: spacing.lg, gap: spacing.lg },
+  photoBlock: { alignItems: 'center', gap: spacing.lg },
+  removePhoto: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoButtons: { flexDirection: 'row', gap: spacing.sm, alignSelf: 'stretch' },
-  link: { color: colors.danger, fontWeight: '600' },
-  label: { fontSize: 14, fontWeight: '600', color: colors.muted, marginTop: spacing.lg, marginBottom: spacing.xs },
-  input: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-  },
-  inputText: { fontSize: 16, color: colors.text },
-  placeholder: { fontSize: 16, color: colors.muted },
-  notes: { minHeight: 90, textAlignVertical: 'top' },
+  field: { gap: spacing.sm },
+  hint: { ...type.caption, paddingHorizontal: spacing.xs },
+  input: { ...inputBase, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.text, paddingVertical: 14 },
+  inputRow: { ...inputBase, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  inputInner: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.text, paddingVertical: 14 },
+  suffix: { ...type.caption, color: colors.text },
+  notes: { minHeight: 110, textAlignVertical: 'top' },
+  speciesPicker: { ...card, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
+  pressed: { opacity: 0.9 },
+  speciesIcon: { width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  speciesName: { fontFamily: fonts.display, fontSize: 17, color: colors.text },
+  placeholder: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.primary },
+  speciesLatin: { ...type.caption, fontStyle: 'italic' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.text, fontSize: 14 },
-  chipTextSelected: { color: '#FFFFFF', fontWeight: '600' },
-  submit: { marginTop: spacing.xl },
+  submit: { marginTop: spacing.sm },
 });
